@@ -69,7 +69,7 @@ export function SchedulerBoard({
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-2">
           <span className="text-sm font-medium text-muted-foreground">Developer</span>
-          <Select value={developerId} onValueChange={setDeveloperId}>
+          <Select value={developerId} onValueChange={(v) => v && setDeveloperId(v)}>
             <SelectTrigger className="w-[220px] bg-card">
               <SelectValue placeholder="Select a developer" />
             </SelectTrigger>

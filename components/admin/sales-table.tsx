@@ -1,14 +1,8 @@
 "use client"
 
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
+import { ColumnDef } from "@tanstack/react-table"
 import { Badge } from "@/components/ui/badge"
+import { DataTable } from "@/components/ui/data-table"
 import type { Profile } from "@/lib/types"
 
 interface SalesTableProps {
@@ -24,42 +18,46 @@ export function SalesTable({ managers }: SalesTableProps) {
     })
   }
 
+  const columns: ColumnDef<Profile>[] = [
+    {
+      accessorKey: "full_name",
+      header: "Name",
+      cell: ({ row }) => <div className="font-medium">{row.getValue("full_name")}</div>,
+    },
+    {
+      accessorKey: "email",
+      header: "Email",
+    },
+    {
+      accessorKey: "is_active",
+      header: "Status",
+      cell: ({ row }) => {
+        const isActive = row.getValue("is_active")
+        return (
+          <Badge variant={isActive ? "default" : "secondary"}>
+            {isActive ? "Active" : "Inactive"}
+          </Badge>
+        )
+      },
+    },
+    {
+      accessorKey: "created_at",
+      header: "Created",
+      cell: ({ row }) => (
+        <div className="text-sm text-muted-foreground">
+          {formatDate(row.getValue("created_at"))}
+        </div>
+      ),
+    },
+  ]
+
   if (managers.length === 0) {
     return (
-      <div className="rounded-lg border border-dashed border-gray-300 p-8 text-center">
-        <p className="text-gray-500">No sales managers created yet</p>
+      <div className="rounded-lg border border-dashed p-8 text-center">
+        <p className="text-muted-foreground">No sales managers created yet</p>
       </div>
     )
   }
 
-  return (
-    <div className="rounded-lg border">
-      <Table>
-        <TableHeader>
-          <TableRow className="bg-gray-50">
-            <TableHead>Name</TableHead>
-            <TableHead>Email</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead>Created</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {managers.map((manager) => (
-            <TableRow key={manager.id}>
-              <TableCell className="font-medium">{manager.full_name}</TableCell>
-              <TableCell className="text-gray-600">{manager.email}</TableCell>
-              <TableCell>
-                <Badge variant={manager.is_active ? "default" : "secondary"}>
-                  {manager.is_active ? "Active" : "Inactive"}
-                </Badge>
-              </TableCell>
-              <TableCell className="text-sm text-gray-500">
-                {formatDate(manager.created_at)}
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-    </div>
-  )
+  return <DataTable columns={columns} data={managers} />
 }

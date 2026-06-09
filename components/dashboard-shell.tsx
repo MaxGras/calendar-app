@@ -1,24 +1,24 @@
-import type { ReactNode } from "react"
-import { CalendarClock } from "lucide-react"
-import type { Profile } from "@/lib/types"
-import { ROLE_LABELS } from "@/lib/types"
-import { Badge } from "@/components/ui/badge"
-import { SignOutButton } from "@/components/sign-out-button"
+import type { ReactNode } from "react";
+import { CalendarClock } from "lucide-react";
+import type { Profile } from "@/lib/types";
+import { ROLE_LABELS } from "@/lib/types";
+import { Badge } from "@/components/ui/badge";
+import { SignOutButton } from "@/components/sign-out-button";
 
 export function DashboardShell({
   profile,
- 
+  title,
   description,
   actions,
   children,
   fullWidth,
 }: {
-  profile: Profile
- 
-  description?: string
-  actions?: ReactNode
-  children: ReactNode
-  fullWidth?: boolean
+  profile: Profile;
+  title?: string;
+  description?: string;
+  actions?: ReactNode;
+  children: ReactNode;
+  fullWidth?: boolean;
 }) {
   return (
     <div className="min-h-screen bg-secondary flex flex-col">
@@ -43,9 +43,18 @@ export function DashboardShell({
         </div>
       </header>
 
-      <main className={`px-4 py-6 sm:px-6 sm:py-8 ${fullWidth ? "" : "mx-auto max-w-6xl"}`}>
+      <main className={`px-4 py-6 sm:px-6 sm:py-8 flex-1 flex flex-col ${fullWidth ? "" : "mx-auto max-w-6xl"}`}>
+        {title && (
+          <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <h1 className="text-2xl font-semibold text-foreground">{title}</h1>
+              {description ? <p className="mt-1 text-sm text-muted-foreground">{description}</p> : null}
+            </div>
+            {actions ? <div className="flex shrink-0 items-center gap-2">{actions}</div> : null}
+          </div>
+        )}
         {children}
       </main>
     </div>
-  )
+  );
 }

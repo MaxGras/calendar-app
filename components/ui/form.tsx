@@ -18,7 +18,7 @@ import { Label } from "@/components/ui/label"
 const Form = FormProvider
 
 interface FormFieldContextValue {
-  name: string | string[]
+  name: string
 }
 
 const FormFieldContext = React.createContext<FormFieldContextValue>(

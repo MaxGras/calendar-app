@@ -106,7 +106,7 @@ export function BookCallDialog({
 
             <div className="flex flex-col gap-2">
               <Label htmlFor="duration">Duration (hours)</Label>
-              <Select value={String(duration)} onValueChange={(v) => setDuration(parseInt(v))}>
+              <Select value={String(duration)} onValueChange={(v) => v && setDuration(parseInt(v))}>
                 <SelectTrigger id="duration">
                   <SelectValue />
                 </SelectTrigger>

@@ -123,7 +123,7 @@ function AccountRow({ account, isSelf }: { account: Profile; isSelf: boolean }) 
         ) : (
           <Select
             value={account.role}
-            onValueChange={(v) => run(() => updateAccountRole(account.id, v as Role))}
+            onValueChange={(v) => v && run(() => updateAccountRole(account.id, v as Role))}
           >
             <SelectTrigger className="h-8 w-[150px]">
               <SelectValue />
@@ -166,7 +166,7 @@ function DeleteAccountButton({
   const [open, setOpen] = useState(false)
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
+      <DialogTrigger>
         <Button variant="ghost" size="icon" disabled={disabled} className="text-muted-foreground hover:text-destructive">
           <Trash2 className="h-4 w-4" />
           <span className="sr-only">Delete account</span>
@@ -229,7 +229,7 @@ function CreateAccountDialog({
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
+      <DialogTrigger>
         <Button size="sm">
           <Plus className="h-4 w-4" />
           New account
