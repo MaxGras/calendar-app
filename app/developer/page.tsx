@@ -98,9 +98,9 @@ function CallCard({ call, isPast = false }: { call: CallWithDeveloper; isPast?: 
           {isPast ? <Badge variant="secondary">Past</Badge> : null}
         </div>
       </CardHeader>
-      {call.notes ? (
+      {call.call_link ? (
         <CardContent>
-          <p className="whitespace-pre-wrap text-sm text-muted-foreground">{call.notes}</p>
+          <p className="whitespace-pre-wrap text-sm text-muted-foreground">{call.call_link}</p>
         </CardContent>
       ) : null}
     </Card>

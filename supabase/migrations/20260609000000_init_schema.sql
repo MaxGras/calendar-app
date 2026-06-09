@@ -8,7 +8,7 @@ CREATE EXTENSION IF NOT EXISTS btree_gist;
 -- PROFILES TABLE
 -- ============================================================================
 
-CREATE TABLE public.profiles (
+CREATE TABLE IF NOT EXISTS public.profiles (
   id         uuid PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
   email      text NOT NULL UNIQUE,
   full_name  text NOT NULL DEFAULT '',
@@ -18,8 +18,8 @@ CREATE TABLE public.profiles (
 );
 
 -- Create index on role for faster queries
-CREATE INDEX idx_profiles_role ON public.profiles(role);
-CREATE INDEX idx_profiles_is_active ON public.profiles(is_active);
+CREATE INDEX IF NOT EXISTS idx_profiles_role ON public.profiles(role);
+CREATE INDEX IF NOT EXISTS idx_profiles_is_active ON public.profiles(is_active);
 
 -- Auto-create profile when new auth user is created
 CREATE OR REPLACE FUNCTION public.handle_new_user()
@@ -45,12 +45,14 @@ CREATE OR REPLACE TRIGGER on_auth_user_created
 -- CALLS TABLE
 -- ============================================================================
 
-CREATE TABLE public.calls (
+CREATE TABLE IF NOT EXISTS public.calls (
   id           uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   developer_id uuid NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
   created_by   uuid REFERENCES public.profiles(id) ON DELETE SET NULL,
   title        text NOT NULL DEFAULT 'Call',
-  notes        text NOT NULL DEFAULT '',
+  call_link    text NOT NULL DEFAULT '',
+  vacancy_link text NOT NULL DEFAULT '',
+  salary       text NOT NULL DEFAULT '',
   start_time   timestamptz NOT NULL,
   end_time     timestamptz NOT NULL,
   created_at   timestamptz NOT NULL DEFAULT now(),
@@ -67,10 +69,10 @@ CREATE TABLE public.calls (
 );
 
 -- Create indexes for common queries
-CREATE INDEX idx_calls_developer_id ON public.calls(developer_id);
-CREATE INDEX idx_calls_created_by ON public.calls(created_by);
-CREATE INDEX idx_calls_start_time ON public.calls(start_time);
-CREATE INDEX idx_calls_end_time ON public.calls(end_time);
+CREATE INDEX IF NOT EXISTS idx_calls_developer_id ON public.calls(developer_id);
+CREATE INDEX IF NOT EXISTS idx_calls_created_by ON public.calls(created_by);
+CREATE INDEX IF NOT EXISTS idx_calls_start_time ON public.calls(start_time);
+CREATE INDEX IF NOT EXISTS idx_calls_end_time ON public.calls(end_time);
 
 -- ============================================================================
 -- ROW LEVEL SECURITY
@@ -95,6 +97,7 @@ $$;
 
 -- Any authenticated user can read all profiles
 -- (needed for dropdowns, role lookups, etc.)
+DROP POLICY IF EXISTS "profiles: authenticated users can read all" ON public.profiles;
 CREATE POLICY "profiles: authenticated users can read all"
   ON public.profiles FOR SELECT
   TO authenticated
@@ -108,6 +111,7 @@ CREATE POLICY "profiles: authenticated users can read all"
 -- ============================================================================
 
 -- Sales managers and admins can read all calls
+DROP POLICY IF EXISTS "calls: managers and admins can read" ON public.calls;
 CREATE POLICY "calls: managers and admins can read"
   ON public.calls FOR SELECT
   TO authenticated
@@ -116,6 +120,7 @@ CREATE POLICY "calls: managers and admins can read"
   );
 
 -- Developers can read only their own calls
+DROP POLICY IF EXISTS "calls: developers can read own" ON public.calls;
 CREATE POLICY "calls: developers can read own"
   ON public.calls FOR SELECT
   TO authenticated
@@ -124,6 +129,7 @@ CREATE POLICY "calls: developers can read own"
   );
 
 -- Sales managers and admins can insert calls
+DROP POLICY IF EXISTS "calls: managers and admins can insert" ON public.calls;
 CREATE POLICY "calls: managers and admins can insert"
   ON public.calls FOR INSERT
   TO authenticated
@@ -132,6 +138,7 @@ CREATE POLICY "calls: managers and admins can insert"
   );
 
 -- Sales managers and admins can delete calls
+DROP POLICY IF EXISTS "calls: managers and admins can delete" ON public.calls;
 CREATE POLICY "calls: managers and admins can delete"
   ON public.calls FOR DELETE
   TO authenticated

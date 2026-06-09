@@ -14,7 +14,9 @@ export interface Call {
   developer_id: string
   created_by: string | null
   title: string
-  notes: string
+  call_link: string
+  vacancy_link: string
+  salary: string
   start_time: string
   end_time: string
   created_at: string
@@ -22,6 +24,7 @@ export interface Call {
 
 export interface CallWithDeveloper extends Call {
   developer: Pick<Profile, "id" | "full_name" | "email"> | null
+  creator?: Pick<Profile, "id" | "full_name" | "email"> | null
 }
 
 export const ROLE_LABELS: Record<Role, string> = {

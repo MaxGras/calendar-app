@@ -1,12 +1,12 @@
-"use client"
+"use client";
 
-import { useState, useTransition } from "react"
-import { toast } from "sonner"
-import { Loader2, Trash2 } from "lucide-react"
-import { cancelCall } from "@/app/actions/calls"
-import type { CallWithDeveloper } from "@/lib/types"
-import { formatDateTime } from "@/lib/time"
-import { Button } from "@/components/ui/button"
+import { useState, useTransition } from "react";
+import { toast } from "sonner";
+import { Loader2, Trash2 } from "lucide-react";
+import { cancelCall } from "@/app/actions/calls";
+import type { CallWithDeveloper, Profile } from "@/lib/types";
+import { formatDateTime } from "@/lib/time";
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -14,36 +14,44 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog"
-import { Separator } from "@/components/ui/separator"
+} from "@/components/ui/dialog";
+import { Separator } from "@/components/ui/separator";
 
 export function CallDetailsDialog({
   call,
+  currentProfile,
   onClose,
   onCancelled,
 }: {
-  call: CallWithDeveloper
-  onClose: () => void
-  onCancelled: () => void
+  call: CallWithDeveloper;
+  currentProfile: Profile;
+  onClose: () => void;
+  onCancelled: (callId: string) => void;
 }) {
-  const [deleteOpen, setDeleteOpen] = useState(false)
-  const [pending, startTransition] = useTransition()
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [pending, startTransition] = useTransition();
 
-  const start = new Date(call.start_time)
-  const end = new Date(call.end_time)
+  const start = new Date(call.start_time);
+  const end = new Date(call.end_time);
+  const canDelete = call.created_by === currentProfile.id;
+  const showLink = currentProfile.role !== "sales_manager";
 
   function handleCancel() {
+    // Optimistically remove from UI
+    setDeleteOpen(false);
+    onClose();
+    onCancelled(call.id);
+    toast.success("Call cancelled.");
+
+    // Send request
     startTransition(async () => {
-      const res = await cancelCall(call.id)
+      const res = await cancelCall(call.id);
       if (res.error) {
-        toast.error(res.error)
-      } else {
-        toast.success(res.success ?? "Call cancelled.")
-        setDeleteOpen(false)
-        onClose()
-        onCancelled()
+        // Revert optimistic update on error
+        toast.error(res.error);
+        // TODO: Re-add the call to state
       }
-    })
+    });
   }
 
   return (
@@ -59,6 +67,18 @@ export function CallDetailsDialog({
         <div className="flex flex-col gap-4">
           <div className="space-y-3">
             <div>
+              <p className="text-xs font-medium text-muted-foreground">Title</p>
+              <p className="mt-1 text-sm font-medium text-foreground">{call.title}</p>
+            </div>
+
+            <div>
+              <p className="text-xs font-medium text-muted-foreground">Developer</p>
+              <p className="mt-1 text-sm font-medium text-foreground">
+                {call.developer?.full_name || call.developer?.email || "Unknown developer"}
+              </p>
+            </div>
+
+            <div>
               <p className="text-xs font-medium text-muted-foreground">Date & Time</p>
               <p className="mt-1 text-sm font-medium text-foreground">{formatDateTime(start)}</p>
               <p className="text-sm text-muted-foreground">
@@ -66,12 +86,32 @@ export function CallDetailsDialog({
               </p>
             </div>
 
+            <div>
+              <p className="text-xs font-medium text-muted-foreground">Created by</p>
+              <p className="mt-1 text-sm font-medium text-foreground">
+                {call.creator?.full_name || call.creator?.email || "Unknown"}
+              </p>
+            </div>
+
             <Separator />
 
-            {call.notes ? (
+            {call.call_link && showLink ? (
               <div>
-                <p className="text-xs font-medium text-muted-foreground">Notes</p>
-                <p className="mt-1 whitespace-pre-wrap text-sm text-foreground">{call.notes}</p>
+                <p className="text-xs font-medium text-muted-foreground">Link to the call</p>
+                <p className="mt-1 text-sm text-foreground break-all">
+                  {call.call_link.startsWith("http") ? (
+                    <a
+                      href={call.call_link}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-primary hover:underline"
+                    >
+                      {call.call_link}
+                    </a>
+                  ) : (
+                    call.call_link
+                  )}
+                </p>
               </div>
             ) : null}
           </div>
@@ -83,12 +123,7 @@ export function CallDetailsDialog({
               <Button type="button" variant="outline" onClick={() => setDeleteOpen(false)}>
                 Keep it
               </Button>
-              <Button
-                type="button"
-                variant="destructive"
-                disabled={pending}
-                onClick={handleCancel}
-              >
+              <Button type="button" variant="destructive" disabled={pending} onClick={handleCancel}>
                 {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Cancel call"}
               </Button>
             </>
@@ -101,8 +136,10 @@ export function CallDetailsDialog({
                 type="button"
                 variant="ghost"
                 size="icon"
-                className="text-muted-foreground hover:text-destructive"
+                className="text-muted-foreground hover:text-destructive disabled:cursor-not-allowed disabled:opacity-50"
+                disabled={!canDelete}
                 onClick={() => setDeleteOpen(true)}
+                title={!canDelete ? "Only the creator can delete this call" : "Cancel call"}
               >
                 <Trash2 className="h-4 w-4" />
                 <span className="sr-only">Cancel call</span>
@@ -112,5 +149,5 @@ export function CallDetailsDialog({
         </DialogFooter>
       </DialogContent>
     </Dialog>
-  )
+  );
 }

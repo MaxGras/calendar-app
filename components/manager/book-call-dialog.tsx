@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react"
 import { toast } from "sonner"
-import { Loader2 } from "lucide-react"
+import { Loader2, ChevronDown } from "lucide-react"
 import { bookCall } from "@/app/actions/calls"
 import type { CallWithDeveloper, Profile } from "@/lib/types"
 import { DAY_END_HOUR, DAY_START_HOUR } from "@/lib/time"
@@ -18,6 +18,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Separator } from "@/components/ui/separator"
 
 export function BookCallDialog({
   developer,
@@ -32,18 +33,23 @@ export function BookCallDialog({
   initialHour: number
   existingCalls: CallWithDeveloper[]
   onClose: () => void
-  onBooked: () => void
+  onBooked: (call: CallWithDeveloper) => void
 }) {
   const [pending, startTransition] = useTransition()
   const [title, setTitle] = useState("")
-  const [notes, setNotes] = useState("")
+  const [descriptionLink, setDescriptionLink] = useState("")
   const [duration, setDuration] = useState(1)
+  const [expandDetails, setExpandDetails] = useState(false)
+  const [vacancyLink, setVacancyLink] = useState("")
+  const [salary, setSalary] = useState("")
 
   const startTime = new Date(initialDate)
-  startTime.setHours(initialHour, 0, 0, 0)
+  const startHours = Math.floor(initialHour)
+  const startMinutes = (initialHour % 1) * 60
+  startTime.setHours(startHours, startMinutes, 0, 0)
 
   const endTime = new Date(startTime)
-  endTime.setHours(endTime.getHours() + duration)
+  endTime.setMinutes(endTime.getMinutes() + duration * 60)
 
   const conflicts = checkConflicts(existingCalls, developer.id, startTime, endTime)
   const canBook = !conflicts && endTime.getHours() <= DAY_END_HOUR
@@ -52,28 +58,53 @@ export function BookCallDialog({
     e.preventDefault()
     if (!canBook || pending) return
 
+    const callTitle = title.trim() || "Call"
+    const callDescription = descriptionLink.trim()
+
+    // Create optimistic call object
+    const optimisticCall: CallWithDeveloper = {
+      id: `temp-${Date.now()}`,
+      developer_id: developer.id,
+      created_by: null,
+      title: callTitle,
+      call_link: callDescription,
+      vacancy_link: vacancyLink,
+      salary,
+      start_time: startTime.toISOString(),
+      end_time: endTime.toISOString(),
+      created_at: new Date().toISOString(),
+      developer,
+    }
+
+    // Optimistically update UI
+    onBooked(optimisticCall)
+    onClose()
+
+    // Send request
     startTransition(async () => {
       const res = await bookCall({
         developerId: developer.id,
-        title: title.trim() || "Call",
-        notes: notes.trim(),
+        title: callTitle,
+        notes: callDescription,
+        vacancyLink,
+        salary,
         startISO: startTime.toISOString(),
         endISO: endTime.toISOString(),
       })
 
       if (res.error) {
+        // Revert optimistic update on error
         toast.error(res.error)
+        // TODO: Remove the optimistic call from state
       } else {
         toast.success(res.success ?? "Call scheduled.")
-        onClose()
-        onBooked()
       }
     })
   }
 
   return (
     <Dialog open onOpenChange={onClose}>
-      <DialogContent>
+      <DialogContent className="max-w-2xl">
         <DialogHeader>
           <DialogTitle>Book a call</DialogTitle>
           <DialogDescription>
@@ -106,7 +137,7 @@ export function BookCallDialog({
 
             <div className="flex flex-col gap-2">
               <Label htmlFor="duration">Duration (hours)</Label>
-              <Select value={String(duration)} onValueChange={(v) => v && setDuration(parseInt(v))}>
+              <Select value={String(duration)} onValueChange={(v) => v && setDuration(parseFloat(v))}>
                 <SelectTrigger id="duration">
                   <SelectValue />
                 </SelectTrigger>
@@ -138,14 +169,54 @@ export function BookCallDialog({
           </div>
 
           <div className="flex flex-col gap-2">
-            <Label htmlFor="notes">Notes (optional)</Label>
+            <Label htmlFor="description-link">Link to the call</Label>
             <Input
-              id="notes"
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              placeholder="Interview with John about React expertise..."
+              id="description-link"
+              type="url"
+              value={descriptionLink}
+              onChange={(e) => setDescriptionLink(e.target.value)}
+              placeholder="https://example.com/job-description"
             />
           </div>
+
+          <Separator />
+
+          {/* Collapsible Details Section */}
+          <button
+            type="button"
+            onClick={() => setExpandDetails(!expandDetails)}
+            className="flex items-center gap-2 text-sm font-medium text-foreground hover:text-primary transition-colors"
+          >
+            <ChevronDown
+              className={`h-4 w-4 transition-transform ${expandDetails ? "rotate-180" : ""}`}
+            />
+            Additional Details
+          </button>
+
+          {expandDetails && (
+            <div className="flex flex-col gap-4 pt-2">
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="vacancy-link">Vacancy Link (optional)</Label>
+                <Input
+                  id="vacancy-link"
+                  type="url"
+                  value={vacancyLink}
+                  onChange={(e) => setVacancyLink(e.target.value)}
+                  placeholder="https://example.com/job/123"
+                />
+              </div>
+
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="salary">Salary (optional)</Label>
+                <Input
+                  id="salary"
+                  value={salary}
+                  onChange={(e) => setSalary(e.target.value)}
+                  placeholder="$50k - $120k per year"
+                />
+              </div>
+            </div>
+          )}
 
           <DialogFooter>
             <Button type="button" variant="outline" onClick={onClose}>

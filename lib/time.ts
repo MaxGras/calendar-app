@@ -25,21 +25,32 @@ export function sameDay(a: Date, b: Date): boolean {
 }
 
 export function formatDayLabel(date: Date): string {
-  return date.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" })
+  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+  const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
+  return `${days[date.getDay()]} ${months[date.getMonth()]} ${date.getDate()}`
 }
 
 export function formatTime(date: Date): string {
-  return date.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })
+  const hours = date.getHours()
+  const minutes = date.getMinutes()
+  const meridiem = hours < 12 ? "AM" : "PM"
+  const displayHours = hours === 0 ? 12 : hours > 12 ? hours - 12 : hours
+  return minutes === 0
+    ? `${displayHours} ${meridiem}`
+    : `${displayHours}:${minutes.toString().padStart(2, "0")} ${meridiem}`
 }
 
 export function formatDateTime(date: Date): string {
-  return date.toLocaleString(undefined, {
-    weekday: "short",
-    month: "short",
-    day: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-  })
+  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+  const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
+  const hours = date.getHours()
+  const minutes = date.getMinutes()
+  const meridiem = hours < 12 ? "AM" : "PM"
+  const displayHours = hours === 0 ? 12 : hours > 12 ? hours - 12 : hours
+  const timeStr = minutes === 0
+    ? `${displayHours} ${meridiem}`
+    : `${displayHours}:${minutes.toString().padStart(2, "0")} ${meridiem}`
+  return `${days[date.getDay()]} ${months[date.getMonth()]} ${date.getDate()}, ${timeStr}`
 }
 
 // Combine a yyyy-mm-dd date string and a HH:mm time string into a Date (local tz)

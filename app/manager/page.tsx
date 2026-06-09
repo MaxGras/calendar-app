@@ -1,7 +1,7 @@
 import { requireRole } from "@/lib/auth"
 import { createClient } from "@/lib/supabase/server"
 import { DashboardShell } from "@/components/dashboard-shell"
-import { SchedulerBoard } from "@/components/manager/scheduler-board"
+import { ManagerLayout } from "@/components/manager/manager-layout"
 import type { CallWithDeveloper, Profile } from "@/lib/types"
 
 export default async function ManagerPage() {
@@ -23,7 +23,7 @@ export default async function ManagerPage() {
 
   const { data: callsData } = await supabase
     .from("calls")
-    .select("*, developer:profiles!calls_developer_id_fkey(id, full_name, email)")
+    .select("*, developer:profiles!calls_developer_id_fkey(id, full_name, email), creator:profiles!calls_created_by_fkey(id, full_name, email)")
     .gte("end_time", startOfToday.toISOString())
     .order("start_time", { ascending: true })
 
@@ -32,10 +32,10 @@ export default async function ManagerPage() {
   return (
     <DashboardShell
       profile={profile}
-      title="Schedule a call"
-      description="Pick a developer, find an open slot, and book a call. Conflicting times are blocked automatically."
+      fullWidth
+      wideLayout
     >
-      <SchedulerBoard developers={developers} calls={calls} />
+      <ManagerLayout developers={developers} calls={calls} profile={profile} />
     </DashboardShell>
   )
 }

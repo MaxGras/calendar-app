@@ -10,6 +10,8 @@ export async function bookCall(input: {
   developerId: string
   title: string
   notes: string
+  vacancyLink?: string
+  salary?: string
   startISO: string
   endISO: string
 }): Promise<ActionResult> {
@@ -30,7 +32,9 @@ export async function bookCall(input: {
     developer_id: input.developerId,
     created_by: profile.id,
     title: input.title.trim() || "Call",
-    notes: input.notes.trim(),
+    call_link: input.notes.trim(),
+    vacancy_link: input.vacancyLink?.trim() || "",
+    salary: input.salary?.trim() || "",
     start_time: start.toISOString(),
     end_time: end.toISOString(),
   })
