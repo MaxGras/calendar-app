@@ -25,15 +25,19 @@ export function BookCallDialog({
   initialDate,
   initialHour,
   existingCalls,
+  currentProfile,
   onClose,
   onBooked,
+  onCallDone,
 }: {
   developer: Profile
   initialDate: Date
   initialHour: number
   existingCalls: CallWithDeveloper[]
+  currentProfile: Profile
   onClose: () => void
   onBooked: (call: CallWithDeveloper) => void
+  onCallDone?: (callId: string) => void
 }) {
   const [pending, startTransition] = useTransition()
   const [title, setTitle] = useState("")
@@ -65,7 +69,7 @@ export function BookCallDialog({
     const optimisticCall: CallWithDeveloper = {
       id: `temp-${Date.now()}`,
       developer_id: developer.id,
-      created_by: null,
+      created_by: currentProfile.id,
       title: callTitle,
       call_link: callDescription,
       vacancy_link: vacancyLink,
@@ -74,6 +78,12 @@ export function BookCallDialog({
       end_time: endTime.toISOString(),
       created_at: new Date().toISOString(),
       developer,
+      creator: {
+        id: currentProfile.id,
+        full_name: currentProfile.full_name,
+        email: currentProfile.email,
+        color: currentProfile.color,
+      },
     }
 
     // Optimistically update UI
@@ -95,9 +105,11 @@ export function BookCallDialog({
       if (res.error) {
         // Revert optimistic update on error
         toast.error(res.error)
+        onCallDone?.(optimisticCall.id)
         // TODO: Remove the optimistic call from state
       } else {
         toast.success(res.success ?? "Call scheduled.")
+        onCallDone?.(optimisticCall.id)
       }
     })
   }

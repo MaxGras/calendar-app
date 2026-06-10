@@ -14,6 +14,7 @@ CREATE TABLE public.profiles (
   full_name  text NOT NULL DEFAULT '',
   role       text NOT NULL CHECK (role IN ('admin', 'sales_manager', 'developer')),
   is_active  boolean NOT NULL DEFAULT true,
+  color      text NOT NULL DEFAULT '#8B5CF6',
   created_at timestamptz NOT NULL DEFAULT now()
 );
 

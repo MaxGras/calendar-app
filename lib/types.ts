@@ -6,6 +6,7 @@ export interface Profile {
   full_name: string
   role: Role
   is_active: boolean
+  color: string
   created_at: string
 }
 
@@ -24,7 +25,7 @@ export interface Call {
 
 export interface CallWithDeveloper extends Call {
   developer: Pick<Profile, "id" | "full_name" | "email"> | null
-  creator?: Pick<Profile, "id" | "full_name" | "email"> | null
+  creator?: Pick<Profile, "id" | "full_name" | "email" | "color"> | null
 }
 
 export const ROLE_LABELS: Record<Role, string> = {

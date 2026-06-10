@@ -4,6 +4,7 @@ import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { SchedulerBoard } from "./scheduler-board";
 import { ManagerCallsTable } from "./manager-calls-table";
+import { ManagerProfile } from "./manager-profile";
 import type { CallWithDeveloper, Profile } from "@/lib/types";
 
 interface ManagerLayoutProps {
@@ -20,10 +21,11 @@ export function ManagerLayout({ developers, calls, profile }: ManagerLayoutProps
   const menuItems = [
     { id: "calendar", label: "Calendar", icon: "📅" },
     { id: "calls", label: "Calls", icon: "📋" },
+    { id: "profile", label: "Profile", icon: "👤" },
   ];
 
   return (
-    <div className="flex gap-6 flex-1">
+    <div className="flex gap-6 flex-1 px-4 py-3">
       {/* Sidebar */}
       <aside className="w-56 shrink-0 rounded-lg border border-border bg-card">
         <nav className="space-y-1 p-4 h-full flex flex-col">
@@ -53,6 +55,7 @@ export function ManagerLayout({ developers, calls, profile }: ManagerLayoutProps
             <SchedulerBoard developers={developers} calls={calls} currentProfile={profile} />
           )}
           {activeTab === "calls" && <ManagerCallsTable calls={managerCalls} />}
+          {activeTab === "profile" && <ManagerProfile profile={profile} />}
         </div>
       </main>
     </div>

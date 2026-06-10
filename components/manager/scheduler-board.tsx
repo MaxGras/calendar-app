@@ -4,6 +4,7 @@ import { useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
 import { ChevronLeft, ChevronRight, CalendarDays } from "lucide-react"
 import type { CallWithDeveloper, Profile } from "@/lib/types"
+import { getContrastTextColor } from "@/lib/color"
 import {
   DAY_END_HOUR,
   DAY_START_HOUR,
@@ -40,6 +41,7 @@ export function SchedulerBoard({
   const [booking, setBooking] = useState<{ date: Date; hour: number } | null>(null)
   const [selectedCall, setSelectedCall] = useState<CallWithDeveloper | null>(null)
   const [calls, setCalls] = useState<CallWithDeveloper[]>(initialCalls)
+  const [pendingCallIds, setPendingCallIds] = useState<Set<string>>(new Set())
 
   const selectedDeveloper = developers.find((d) => d.id === developerId) ?? null
 
@@ -56,11 +58,25 @@ export function SchedulerBoard({
   // Optimistic update handlers
   const addCallOptimistic = (call: CallWithDeveloper) => {
     setCalls((prev) => [...prev, call])
+    setPendingCallIds((prev) => new Set([...prev, call.id]))
   }
 
   const removeCallOptimistic = (callId: string) => {
     setCalls((prev) => prev.filter((c) => c.id !== callId))
+    setPendingCallIds((prev) => {
+      const next = new Set(prev)
+      next.delete(callId)
+      return next
+    })
     setSelectedCall(null)
+  }
+
+  const clearPendingCall = (callId: string) => {
+    setPendingCallIds((prev) => {
+      const next = new Set(prev)
+      next.delete(callId)
+      return next
+    })
   }
 
   if (developers.length === 0) {
@@ -183,6 +199,7 @@ export function SchedulerBoard({
                   day={day}
                   calls={developerCalls}
                   now={now}
+                  pendingCallIds={pendingCallIds}
                   onSlotClick={(hour) => setBooking({ date: day, hour: Math.floor(hour) })}
                   onCallClick={(call) => setSelectedCall(call)}
                 />
@@ -202,11 +219,13 @@ export function SchedulerBoard({
           initialDate={booking.date}
           initialHour={booking.hour}
           existingCalls={developerCalls}
+          currentProfile={currentProfile}
           onClose={() => setBooking(null)}
           onBooked={(newCall) => {
             setBooking(null)
             addCallOptimistic(newCall)
           }}
+          onCallDone={clearPendingCall}
         />
       ) : null}
 
@@ -228,12 +247,14 @@ function DayColumn({
   day,
   calls,
   now,
+  pendingCallIds,
   onSlotClick,
   onCallClick,
 }: {
   day: Date
   calls: CallWithDeveloper[]
   now: Date
+  pendingCallIds: Set<string>
   onSlotClick: (hour: number) => void
   onCallClick: (call: CallWithDeveloper) => void
 }) {
@@ -275,6 +296,7 @@ function DayColumn({
       {dayCalls.map((call) => {
         const start = new Date(call.start_time)
         const end = new Date(call.end_time)
+        const isPending = pendingCallIds.has(call.id)
 
         // Calculate position in 30-minute slots
         const startTotalMinutes = (start.getHours() - DAY_START_HOUR) * 60 + start.getMinutes()
@@ -290,14 +312,23 @@ function DayColumn({
             key={call.id}
             type="button"
             onClick={() => onCallClick(call)}
-            className="absolute inset-x-2 overflow-hidden rounded-lg border-2 border-primary bg-muted px-2 py-1.5 text-left transition-all hover:bg-muted/80 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-primary/50"
-            style={{ top: Math.max(startOffset, 0), height }}
+            disabled={isPending}
+            className={`absolute inset-x-2 overflow-hidden rounded-lg border-2 px-2 py-1.5 text-left transition-all hover:shadow-md focus:outline-none focus:ring-2 ${isPending ? "pointer-events-none opacity-50 cursor-not-allowed" : ""}`}
+            style={{
+              top: Math.max(startOffset, 0),
+              height,
+              backgroundColor: call.creator?.color || "#8B5CF6",
+              borderColor: call.creator?.color || "#8B5CF6",
+              outlineColor: call.creator?.color || "#8B5CF6",
+            }}
           >
-            <p className="truncate text-xs font-bold leading-tight text-white">{call.title}</p>
-            <p className="truncate text-[10px] font-normal leading-tight text-white/80">
+            <p className={`truncate text-xs font-bold leading-tight ${getContrastTextColor(call.creator?.color || "#8B5CF6")}`}>
+              {call.title}
+            </p>
+            <p className={`truncate text-[10px] font-normal leading-tight ${getContrastTextColor(call.creator?.color || "#8B5CF6")} opacity-80`}>
               {call.creator?.full_name || call.creator?.email || "—"}
             </p>
-            <p className="truncate text-[11px] font-medium leading-tight text-white">
+            <p className={`truncate text-[11px] font-medium leading-tight ${getContrastTextColor(call.creator?.color || "#8B5CF6")}`}>
               {formatTime(start)} – {formatTime(end)}
             </p>
           </button>

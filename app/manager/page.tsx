@@ -23,7 +23,7 @@ export default async function ManagerPage() {
 
   const { data: callsData } = await supabase
     .from("calls")
-    .select("*, developer:profiles!calls_developer_id_fkey(id, full_name, email), creator:profiles!calls_created_by_fkey(id, full_name, email)")
+    .select("*, developer:profiles!calls_developer_id_fkey(id, full_name, email), creator:profiles!calls_created_by_fkey(id, full_name, email, color)")
     .gte("end_time", startOfToday.toISOString())
     .order("start_time", { ascending: true })
 

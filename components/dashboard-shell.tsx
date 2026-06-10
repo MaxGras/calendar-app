@@ -51,7 +51,7 @@ export function DashboardShell({
 
       <main className="flex-1 flex flex-col w-full overflow-hidden">
         <div
-          className={`sm:px-6 sm:py-8 flex flex-col flex-1 overflow-y-auto ${fullWidth ? "w-full" : "max-w-6xl w-full"} ${wideLayout ? "w-[75vw]" : ""}`}
+          className={` flex flex-col flex-1 overflow-y-auto ${fullWidth ? "w-full" : "max-w-6xl w-full"} ${wideLayout ? "w-[75vw]" : ""}`}
         >
           {title && (
             <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
