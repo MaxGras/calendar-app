@@ -26,8 +26,11 @@ CallDesk is a developer call scheduling app where sales managers book calls with
 - No direct database access; everything goes through Supabase client
 
 ### Database
-- `profiles` — Users with role, is_active, email, full_name
+- `profiles` — Users with role, is_active, email, full_name, color
 - `calls` — Scheduled calls with developer_id, start/end times
+- `recurring_calls` — Recurring call templates with repeat_type, repeat_days, hour, minute, duration_minutes
+- `recurring_call_exceptions` — Exceptions/cancellations for specific recurring call instances
+- `app_settings` — Global app settings (e.g., default_timezone)
 - Exclusion constraint prevents overlapping calls (error code 23P01)
 - RLS policies enforce role-based access
 
@@ -72,32 +75,76 @@ import type { TypeName } from "@/path" // Explicit type imports
 ## Role-Based Access
 
 ### Admin
-- Can create/delete/deactivate accounts
+- Can create/delete/deactivate accounts with email/password (min 4 chars)
 - Can change user roles
+- Can set global app timezone (stored in app_settings)
+- Can delete developers and sales managers from admin tables
 - Lands on `/admin`
 - Uses service-role client (bypasses RLS)
 
 ### Sales Manager
 - Can book and cancel calls
 - Can see all developers and their schedules
+- Can delete recurring calls assigned to them (single instance or entire series)
 - Lands on `/manager`
-- Can view week-view calendar
+- Can view week-view calendar with current time indicator
+- Manager color displayed on recurring call instances they're assigned to
 
 ### Developer
-- Can see their own calls (read-only)
+- Can see their own calls and recurring calls
+- Can create recurring calls (daily, weekly, biweekly, custom)
+- Can assign recurring calls to optional sales manager
+- Can delete their own recurring calls (single instance or entire series)
 - Lands on `/developer`
-- Cannot book or cancel calls
+- Cannot book or cancel one-time calls (read-only for those)
 
 ## Routing & Redirects
 
 - `/` — Home (redirects to role dashboard)
 - `/auth/login` — Login page
 - `/admin` — Admin dashboard (requires admin role)
+  - Tabs: Developers, Sales Managers, Settings
 - `/manager` — Sales manager calendar (requires manager role)
 - `/developer` — Developer schedule (requires developer role)
 - `/auth/callback` — OAuth callback from Supabase
 
 All protected routes use `requireRole()` helper which redirects non-matching users to their own dashboard.
+
+## Recurring Calls Feature
+
+### Creation (Developer)
+- Developers can create recurring calls from `/developer` page
+- Options: daily, weekly, biweekly, custom (select specific days)
+- Set: title, call link, duration (15-120 min), time
+- Optional: assign to sales manager
+- Validation: checks for time conflicts with existing calls/recurring calls
+
+### Display (Manager Calendar)
+- Recurring call instances generated for the week
+- Display with diagonal stripe pattern to distinguish from one-time calls
+- Color: based on assigned sales manager, or developer's color if not assigned
+- Show manager's name as "Created by" 
+
+### Deletion
+- Developer can delete: entire series or single instance only
+- Sales Manager (if assigned): can delete entire series or single instance only
+- Confirmation dialog shows what will be deleted
+- Single instance cancellations stored in `recurring_call_exceptions` table
+
+### Calendar Features
+- Current time indicator (red line) on today's column
+- Past time slots: light gray background
+- Past recurring calls: 40% opacity but still visible
+- Calls display in default app timezone (set by admin)
+
+## Timezone Support
+
+- **Admin Settings:** New "Settings" tab allows admin to set default timezone
+- **Storage:** Default timezone stored in `app_settings` table
+- **Default:** GMT+2 (Europe/Kyiv) by default
+- **Validation:** Uses IANA timezone format (e.g., Europe/Paris, America/New_York)
+- **Audit:** Records who changed timezone and when
+- **Database:** All times stored as UTC in database, displayed in selected timezone
 
 ## Common Tasks
 
@@ -143,12 +190,16 @@ All protected routes use `requireRole()` helper which redirects non-matching use
 - Use DevTools Network tab to see RLS errors
 - Query Supabase SQL Editor to inspect data directly
 
-## Known Quirks
+## Known Quirks & Features
 
-- **Timezone:** Times stored as UTC, displayed in browser local time. No user-level timezone config.
-- **Overlap check:** UI checks locally; DB enforces with constraint. Rare race condition possible but caught and surfaced as error.
-- **RLS:** Developers can't see other developers' calls by design. Admin sees all via service-role client.
-- **Passwords:** No password reset flow; admin must deactivate and recreate.
+- **Timezone:** Times stored as UTC, displayed in app-wide timezone set by admin. Default is GMT+2 (Kyiv).
+- **Recurring Calls:** Generated instances not stored individually; calculated from template on display. Single exceptions stored in `recurring_call_exceptions` table.
+- **Overlap check:** UI checks locally; DB enforces with constraint on one-time calls only. Rare race condition possible but caught and surfaced as error.
+- **RLS:** Developers can't see other developers' calls by design. Admin sees all via service-role client. RLS disabled on profiles table to allow admin user creation.
+- **Passwords:** No password reset flow; admin must deactivate and recreate. Minimum 4 characters (not 8).
+- **Delete Dialogs:** Recurring call delete opens separate modal (not nested) to prevent overlapping dialogs.
+- **Manager Assignment:** Optional on recurring calls; if none assigned, uses developer's color for display.
+- **Sales Manager Access:** Can only see/manage recurring calls assigned to them (authorization checked server-side).
 
 ## Git & Commits
 
@@ -184,15 +235,27 @@ Do NOT commit `.env.local` — it's in `.gitignore`.
 5. Don't add timestamps without `timestamptz` type (DST issues)
 6. Don't skip the overlap constraint (data integrity)
 
+## Implemented Features
+
+- ✅ Recurring calls (daily, weekly, biweekly, custom)
+- ✅ Timezone support (admin-wide setting, default GMT+2)
+- ✅ Current time indicator on calendar
+- ✅ Admin user management (create/delete developers and sales managers)
+- ✅ Delete recurring call instances or entire series
+- ✅ Optional sales manager assignment on recurring calls
+- ✅ Color-coded calls based on manager/developer
+
 ## Future Improvements
 
-- Add timezone support (user preference + UTC storage)
-- Add recurring calls (weekly, monthly templates)
+- Add user-level timezone preferences (override admin default)
 - Add email notifications (Resend, SendGrid)
 - Add call notes/history (past calls with summaries)
 - Add call status (scheduled, completed, no-show)
+- Add bulk operations (delete multiple users, reschedule calls)
 - Mobile app (React Native or Flutter)
 - Analytics dashboard (calls booked, cancellation rate, etc.)
+- Add password reset flow
+- Add call reminders (24h, 1h before call)
 
 ## Links & Docs
 
@@ -205,5 +268,5 @@ Do NOT commit `.env.local` — it's in `.gitignore`.
 
 ---
 
-**Last Updated:** 2026-06-09  
-**Status:** Ready for Supabase setup and testing
+**Last Updated:** 2026-06-18  
+**Status:** Fully implemented with recurring calls, timezone settings, and admin management
