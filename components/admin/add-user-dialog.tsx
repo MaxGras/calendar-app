@@ -50,8 +50,8 @@ export function AddUserDialog({
       return
     }
 
-    if (!password || password.length < 8) {
-      toast.error("Password must be at least 8 characters")
+    if (!password || password.length < 4) {
+      toast.error("Password must be at least 4 characters")
       return
     }
 
@@ -117,13 +117,13 @@ export function AddUserDialog({
             <Input
               id="password"
               type="password"
-              placeholder="At least 8 characters"
+              placeholder="At least 4 characters"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               disabled={pending}
               required
             />
-            <p className="text-xs text-muted-foreground">Minimum 8 characters</p>
+            <p className="text-xs text-muted-foreground">Minimum 4 characters</p>
           </div>
 
           <DialogFooter>
