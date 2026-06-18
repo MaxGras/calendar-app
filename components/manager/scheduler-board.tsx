@@ -337,7 +337,7 @@ function DayColumn({
             onClick={() => onSlotClick(slot)}
             className={
               "group relative block w-full border-b border-border/50 transition-all " +
-              (isPast ? "cursor-not-allowed bg-muted/10" : "cursor-pointer hover:bg-accent/40 hover:shadow-sm") +
+              (isPast ? "cursor-not-allowed bg-destructive/15" : "cursor-pointer hover:bg-accent/40 hover:shadow-sm") +
               (isHalfHour ? " bg-muted/5" : "")
             }
             style={{ height: SLOT_HEIGHT }}
@@ -358,6 +358,7 @@ function DayColumn({
         const end = new Date(call.end_time)
         const isPending = pendingCallIds.has(call.id)
         const isRecurring = (call as any).isRecurringInstance
+        const isPast = end <= now
 
         // Calculate position in 30-minute slots
         const startTotalMinutes = (start.getHours() - DAY_START_HOUR) * 60 + start.getMinutes()
@@ -377,7 +378,7 @@ function DayColumn({
             type="button"
             onClick={() => onCallClick(call)}
             disabled={isPending}
-            className={`absolute inset-x-2 overflow-hidden rounded-lg border-2 px-2 py-1.5 text-left transition-all hover:shadow-md focus:outline-none focus:ring-2 ${isPending ? "pointer-events-none opacity-50 cursor-not-allowed" : ""}`}
+            className={`absolute inset-x-2 overflow-hidden rounded-lg border-2 px-2 py-1.5 text-left transition-all hover:shadow-md focus:outline-none focus:ring-2 ${isPending ? "pointer-events-none opacity-50 cursor-not-allowed" : isPast ? "opacity-40" : ""}`}
             style={{
               top: Math.max(startOffset, 2),
               height,

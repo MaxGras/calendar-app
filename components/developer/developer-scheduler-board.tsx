@@ -269,7 +269,7 @@ function DeveloperDayColumn({
             key={slot}
             className={
               "relative block w-full border-b border-border/50 " +
-              (isPast ? "bg-muted/10" : "") +
+              (isPast ? "bg-destructive/15" : "") +
               (isHalfHour ? " bg-muted/5" : "")
             }
             style={{ height: SLOT_HEIGHT }}
@@ -281,6 +281,7 @@ function DeveloperDayColumn({
       {dayCalls.map((call) => {
         const start = new Date(call.start_time)
         const end = new Date(call.end_time)
+        const isPast = end <= now
 
         // Calculate position in 30-minute slots
         const startTotalMinutes = (start.getHours() - DAY_START_HOUR) * 60 + start.getMinutes()
@@ -301,7 +302,7 @@ function DeveloperDayColumn({
             key={call.id}
             type="button"
             onClick={() => onCallClick(call)}
-            className={`absolute inset-x-2 overflow-hidden rounded-lg border-2 px-2 py-1.5 text-left transition-all hover:shadow-md focus:outline-none focus:ring-2 cursor-pointer`}
+            className={`absolute inset-x-2 overflow-hidden rounded-lg border-2 px-2 py-1.5 text-left transition-all hover:shadow-md focus:outline-none focus:ring-2 cursor-pointer ${isPast ? "opacity-40" : ""}`}
             style={{
               top: Math.max(startOffset, 2),
               height,
