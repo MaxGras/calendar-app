@@ -337,7 +337,7 @@ function DayColumn({
             onClick={() => onSlotClick(slot)}
             className={
               "group relative block w-full border-b border-border/50 transition-all " +
-              (isPast ? "cursor-not-allowed bg-destructive/15" : "cursor-pointer hover:bg-accent/40 hover:shadow-sm") +
+              (isPast ? "cursor-not-allowed bg-gray-100/60" : "cursor-pointer hover:bg-accent/40 hover:shadow-sm") +
               (isHalfHour ? " bg-muted/5" : "")
             }
             style={{ height: SLOT_HEIGHT }}
@@ -384,7 +384,7 @@ function DayColumn({
               height,
               margin: "1px",
               backgroundColor: baseColor,
-              backgroundImage: isRecurring
+              backgroundImage: !isPast && isRecurring
                 ? `repeating-linear-gradient(
                     45deg,
                     transparent,
