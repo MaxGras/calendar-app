@@ -4,7 +4,7 @@ import { useState, useTransition } from "react";
 import { toast } from "sonner";
 import { Loader2, Trash2 } from "lucide-react";
 import { cancelCall } from "@/app/actions/calls";
-import { deleteRecurringCall } from "@/app/actions/recurring-calls";
+import { deleteRecurringCall, cancelRecurringCallInstance } from "@/app/actions/recurring-calls";
 import type { CallWithDeveloper, Profile } from "@/lib/types";
 import { formatDateTime } from "@/lib/time";
 import { Button } from "@/components/ui/button";
@@ -17,6 +17,16 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 export function CallDetailsDialog({
   call,
@@ -24,24 +34,29 @@ export function CallDetailsDialog({
   onClose,
   onCancelled,
   readOnly = false,
-  onDeleteRecurring,
 }: {
   call: CallWithDeveloper;
   currentProfile: Profile;
   onClose: () => void;
   onCancelled: (callId: string) => void;
   readOnly?: boolean;
-  onDeleteRecurring?: () => void;
 }) {
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleteMode, setDeleteMode] = useState<"one" | "all" | null>(null);
   const [pending, startTransition] = useTransition();
 
   const start = new Date(call.start_time);
   const end = new Date(call.end_time);
-  const canDelete = call.created_by === currentProfile.id;
-  const showLink = currentProfile.role !== "sales_manager";
   const isRecurringInstance = (call as any).isRecurringInstance;
   const recurringCallId = (call as any).recurringCallId;
+  const instanceDate = (call as any).instanceDate;
+
+  // For regular calls, can delete if created by current user
+  // For recurring calls as manager, can only delete if assigned to this call
+  const canDelete = !isRecurringInstance
+    ? call.created_by === currentProfile.id
+    : currentProfile.role === "admin" || (currentProfile.role === "sales_manager" && call.created_by === currentProfile.id);
+  const showLink = currentProfile.role !== "sales_manager";
 
   function handleCancel() {
     // Optimistically remove from UI
@@ -50,14 +65,23 @@ export function CallDetailsDialog({
     onCancelled(call.id);
 
     if (isRecurringInstance) {
-      toast.success("Recurring call deleted.");
-      // Send request
-      startTransition(async () => {
-        const res = await deleteRecurringCall(recurringCallId);
-        if (res.error) {
-          toast.error(res.error);
-        }
-      });
+      if (deleteMode === "all") {
+        toast.success("Recurring call series deleted.");
+        startTransition(async () => {
+          const res = await deleteRecurringCall(recurringCallId);
+          if (res.error) {
+            toast.error(res.error);
+          }
+        });
+      } else if (deleteMode === "one") {
+        toast.success("Call instance cancelled.");
+        startTransition(async () => {
+          const res = await cancelRecurringCallInstance(recurringCallId, instanceDate);
+          if (res.error) {
+            toast.error(res.error);
+          }
+        });
+      }
     } else {
       toast.success("Call cancelled.");
       // Send request
@@ -65,7 +89,6 @@ export function CallDetailsDialog({
         const res = await cancelCall(call.id);
         if (res.error) {
           toast.error(res.error);
-          // TODO: Re-add the call to state
         }
       });
     }
@@ -149,30 +172,85 @@ export function CallDetailsDialog({
               <Button type="button" variant="outline" onClick={onClose}>
                 Close
               </Button>
-              {(!readOnly || isRecurringInstance) && (
+              {!readOnly && canDelete && (
                 <Button
                   type="button"
                   variant="ghost"
                   size="icon"
-                  className="text-muted-foreground hover:text-destructive disabled:cursor-not-allowed disabled:opacity-50"
-                  disabled={!canDelete}
+                  className="text-muted-foreground hover:text-destructive"
                   onClick={() => {
-                    if (isRecurringInstance && onDeleteRecurring) {
-                      onDeleteRecurring();
-                      onClose();
+                    if (isRecurringInstance) {
+                      setDeleteMode(null);
                     } else {
                       setDeleteOpen(true);
                     }
                   }}
-                  title={!canDelete ? "Only the creator can delete this call" : isRecurringInstance ? "Delete recurring call" : "Cancel call"}
+                  title="Delete call"
                 >
                   <Trash2 className="h-4 w-4" />
-                  <span className="sr-only">{isRecurringInstance ? "Delete recurring call" : "Cancel call"}</span>
+                  <span className="sr-only">Delete call</span>
                 </Button>
               )}
             </>
           )}
         </DialogFooter>
+
+        {/* Delete mode selection for recurring calls */}
+        <AlertDialog open={isRecurringInstance && deleteMode === null && canDelete} onOpenChange={() => setDeleteMode(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete Recurring Call</AlertDialogTitle>
+              <AlertDialogDescription>
+                How would you like to delete this recurring call?
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <DialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setDeleteMode("one")}
+              >
+                Delete This Instance Only
+              </Button>
+              <Button
+                type="button"
+                variant="destructive"
+                onClick={() => setDeleteMode("all")}
+              >
+                Delete Entire Series
+              </Button>
+            </DialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        {/* Confirmation dialog for selected delete mode */}
+        <AlertDialog open={deleteMode !== null} onOpenChange={() => setDeleteMode(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Confirm Delete</AlertDialogTitle>
+              <AlertDialogDescription>
+                {deleteMode === "one"
+                  ? "Are you sure you want to delete this instance of the recurring call?"
+                  : "Are you sure you want to delete the entire recurring call series?"}
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction asChild>
+                <Button
+                  type="button"
+                  variant="destructive"
+                  disabled={pending}
+                  onClick={handleCancel}
+                >
+                  {pending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                  Delete
+                </Button>
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </DialogContent>
     </Dialog>
   );

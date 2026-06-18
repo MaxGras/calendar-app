@@ -299,11 +299,6 @@ export function SchedulerBoard({
           onCancelled={(callId) => {
             removeCallOptimistic(callId)
           }}
-          onDeleteRecurring={() => {
-            if ((selectedCall as any).isRecurringInstance) {
-              removeCallOptimistic(selectedCall.id)
-            }
-          }}
         />
       ) : null}
     </div>

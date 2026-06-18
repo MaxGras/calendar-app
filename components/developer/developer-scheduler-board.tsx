@@ -219,16 +219,6 @@ export function DeveloperSchedulerBoard({
           onCancelled={() => {
             setSelectedCall(null)
           }}
-          onDeleteRecurring={() => {
-            if ((selectedCall as any).isRecurringInstance) {
-              setDeleteModal({
-                open: true,
-                callId: (selectedCall as any).recurringCallId,
-                callTitle: selectedCall.title,
-                instanceDate: (selectedCall as any).instanceDate,
-              })
-            }
-          }}
           readOnly
         />
       ) : null}
