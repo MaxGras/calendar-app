@@ -219,7 +219,7 @@ export function DeveloperSchedulerBoard({
           onCancelled={() => {
             setSelectedCall(null)
           }}
-          readOnly
+          readOnly={!(selectedCall as any).isRecurringInstance}
         />
       ) : null}
 

@@ -42,10 +42,15 @@ export function CallDetailsDialog({
   const instanceDate = (call as any).instanceDate;
 
   // For regular calls, can delete if created by current user
-  // For recurring calls as manager, can only delete if assigned to this call
+  // For recurring calls:
+  //   - Admin can delete any
+  //   - Sales manager can delete if assigned to it
+  //   - Developer can delete if they created it
   const canDelete = !isRecurringInstance
     ? call.created_by === currentProfile.id
-    : currentProfile.role === "admin" || (currentProfile.role === "sales_manager" && call.created_by === currentProfile.id);
+    : currentProfile.role === "admin" ||
+      (currentProfile.role === "sales_manager" && call.created_by === currentProfile.id) ||
+      (currentProfile.role === "developer" && call.created_by === currentProfile.id);
   const showLink = currentProfile.role !== "sales_manager";
 
   function handleCancel() {
