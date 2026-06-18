@@ -155,6 +155,12 @@ export function SchedulerBoard({
   const weekLabel = `${formatDateCompact(days[0])} – ${formatDateCompact(days[6])} ${days[6].getFullYear()}`
   const now = new Date()
 
+  // Calculate current time position for the indicator line
+  const currentTimeMinutes = now.getHours() * 60 + now.getMinutes()
+  const startTimeMinutes = DAY_START_HOUR * 60
+  const currentTimeOffset = ((currentTimeMinutes - startTimeMinutes) / 30) * SLOT_HEIGHT
+  const isCurrentDayInWeek = days.some(d => sameDay(d, now))
+
   return (
     <div className="flex flex-col gap-4">
       {/* Controls */}
@@ -257,6 +263,7 @@ export function SchedulerBoard({
                   pendingCallIds={pendingCallIds}
                   onSlotClick={(hour) => setBooking({ date: day, hour: Math.floor(hour) })}
                   onCallClick={(call) => setSelectedCall(call)}
+                  currentTimeOffset={sameDay(day, now) ? currentTimeOffset : -1}
                 />
               ))}
             </div>
@@ -310,6 +317,7 @@ function DayColumn({
   pendingCallIds,
   onSlotClick,
   onCallClick,
+  currentTimeOffset,
 }: {
   day: Date
   calls: CallWithDeveloper[]
@@ -317,6 +325,7 @@ function DayColumn({
   pendingCallIds: Set<string>
   onSlotClick: (hour: number) => void
   onCallClick: (call: CallWithDeveloper) => void
+  currentTimeOffset: number
 }) {
   const dayCalls = calls.filter((c) => sameDay(new Date(c.start_time), day))
 
@@ -337,8 +346,8 @@ function DayColumn({
             onClick={() => onSlotClick(slot)}
             className={
               "group relative block w-full border-b border-border/50 transition-all " +
-              (isPast ? "cursor-not-allowed bg-slate-200/40" : "cursor-pointer hover:bg-accent/40 hover:shadow-sm") +
-              (isHalfHour ? " bg-muted/5" : "")
+              (isPast ? "cursor-not-allowed bg-muted/35" : "cursor-pointer hover:bg-accent/40 hover:shadow-sm") +
+              (isHalfHour && !isPast ? " bg-muted/5" : "")
             }
             style={{ height: SLOT_HEIGHT }}
             aria-label={`Book ${formatDate(day)} at ${formatHour(slot)}`}
@@ -351,6 +360,17 @@ function DayColumn({
           </button>
         )
       })}
+
+      {/* Current time indicator line */}
+      {currentTimeOffset >= 0 && (
+        <div
+          className="absolute left-0 right-0 h-0.5 bg-red-500 z-20 pointer-events-none"
+          style={{
+            top: `${currentTimeOffset}px`,
+            boxShadow: "0 0 4px rgba(239, 68, 68, 0.8)",
+          }}
+        />
+      )}
 
       {/* Booked calls overlaid */}
       {dayCalls.map((call) => {

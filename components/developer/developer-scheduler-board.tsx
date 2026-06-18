@@ -112,6 +112,11 @@ export function DeveloperSchedulerBoard({
   const weekLabel = `${formatDateCompact(days[0])} – ${formatDateCompact(days[6])} ${days[6].getFullYear()}`
   const now = new Date()
 
+  // Calculate current time position for the indicator line
+  const currentTimeMinutes = now.getHours() * 60 + now.getMinutes()
+  const startTimeMinutes = DAY_START_HOUR * 60
+  const currentTimeOffset = ((currentTimeMinutes - startTimeMinutes) / 30) * SLOT_HEIGHT
+
   return (
     <div className="flex flex-col gap-4">
       {/* Controls */}
@@ -194,6 +199,7 @@ export function DeveloperSchedulerBoard({
                   calls={allCalls}
                   now={now}
                   onCallClick={(call) => setSelectedCall(call)}
+                  currentTimeOffset={sameDay(day, now) ? currentTimeOffset : -1}
                 />
               ))}
             </div>
@@ -247,11 +253,13 @@ function DeveloperDayColumn({
   calls,
   now,
   onCallClick,
+  currentTimeOffset,
 }: {
   day: Date
   calls: CallWithDeveloper[]
   now: Date
   onCallClick: (call: CallWithDeveloper) => void
+  currentTimeOffset: number
 }) {
   const dayCalls = calls.filter((c) => sameDay(new Date(c.start_time), day))
 
@@ -269,13 +277,24 @@ function DeveloperDayColumn({
             key={slot}
             className={
               "relative block w-full border-b border-border/50 " +
-              (isPast ? "bg-slate-200/40" : "") +
-              (isHalfHour ? " bg-muted/5" : "")
+              (isPast ? "bg-muted/35" : "") +
+              (isHalfHour && !isPast ? " bg-muted/5" : "")
             }
             style={{ height: SLOT_HEIGHT }}
           />
         )
       })}
+
+      {/* Current time indicator line */}
+      {currentTimeOffset >= 0 && (
+        <div
+          className="absolute left-0 right-0 h-0.5 bg-red-500 z-20 pointer-events-none"
+          style={{
+            top: `${currentTimeOffset}px`,
+            boxShadow: "0 0 4px rgba(239, 68, 68, 0.8)",
+          }}
+        />
+      )}
 
       {/* Booked calls overlaid */}
       {dayCalls.map((call) => {
