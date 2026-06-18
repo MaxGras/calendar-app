@@ -1,8 +1,12 @@
 "use client"
 
+import { useState } from "react"
 import { ColumnDef } from "@tanstack/react-table"
+import { Plus } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
 import { DataTable } from "@/components/ui/data-table"
+import { AddUserDialog } from "./add-user-dialog"
 import type { Profile } from "@/lib/types"
 
 interface SalesTableProps {
@@ -10,6 +14,8 @@ interface SalesTableProps {
 }
 
 export function SalesTable({ managers }: SalesTableProps) {
+  const [addDialogOpen, setAddDialogOpen] = useState(false)
+
   const formatDate = (date: string) => {
     return new Date(date).toLocaleDateString("en-US", {
       year: "numeric",
@@ -51,13 +57,33 @@ export function SalesTable({ managers }: SalesTableProps) {
     },
   ]
 
-  if (managers.length === 0) {
-    return (
-      <div className="rounded-lg border border-dashed p-8 text-center">
-        <p className="text-muted-foreground">No sales managers created yet</p>
+  return (
+    <>
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-lg font-semibold">Sales Managers</h2>
+        <Button onClick={() => setAddDialogOpen(true)}>
+          <Plus className="h-4 w-4 mr-2" />
+          Add Sales Manager
+        </Button>
       </div>
-    )
-  }
 
-  return <DataTable columns={columns} data={managers} />
+      {managers.length === 0 ? (
+        <div className="rounded-lg border border-dashed p-8 text-center">
+          <p className="text-muted-foreground">No sales managers created yet</p>
+          <Button variant="outline" onClick={() => setAddDialogOpen(true)} className="mt-4">
+            <Plus className="h-4 w-4 mr-2" />
+            Create First Sales Manager
+          </Button>
+        </div>
+      ) : (
+        <DataTable columns={columns} data={managers} />
+      )}
+
+      <AddUserDialog
+        open={addDialogOpen}
+        onOpenChange={setAddDialogOpen}
+        role="sales_manager"
+      />
+    </>
+  )
 }

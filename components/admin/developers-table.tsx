@@ -1,8 +1,12 @@
 "use client"
 
+import { useState } from "react"
 import { ColumnDef } from "@tanstack/react-table"
+import { Plus } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
 import { DataTable } from "@/components/ui/data-table"
+import { AddUserDialog } from "./add-user-dialog"
 import type { Profile } from "@/lib/types"
 
 interface DevelopersTableProps {
@@ -10,6 +14,8 @@ interface DevelopersTableProps {
 }
 
 export function DevelopersTable({ developers }: DevelopersTableProps) {
+  const [addDialogOpen, setAddDialogOpen] = useState(false)
+
   const formatDate = (date: string) => {
     return new Date(date).toLocaleDateString("en-US", {
       year: "numeric",
@@ -51,13 +57,33 @@ export function DevelopersTable({ developers }: DevelopersTableProps) {
     },
   ]
 
-  if (developers.length === 0) {
-    return (
-      <div className="rounded-lg border border-dashed p-8 text-center">
-        <p className="text-muted-foreground">No developers created yet</p>
+  return (
+    <>
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-lg font-semibold">Developers</h2>
+        <Button onClick={() => setAddDialogOpen(true)}>
+          <Plus className="h-4 w-4 mr-2" />
+          Add Developer
+        </Button>
       </div>
-    )
-  }
 
-  return <DataTable columns={columns} data={developers} />
+      {developers.length === 0 ? (
+        <div className="rounded-lg border border-dashed p-8 text-center">
+          <p className="text-muted-foreground">No developers created yet</p>
+          <Button variant="outline" onClick={() => setAddDialogOpen(true)} className="mt-4">
+            <Plus className="h-4 w-4 mr-2" />
+            Create First Developer
+          </Button>
+        </div>
+      ) : (
+        <DataTable columns={columns} data={developers} />
+      )}
+
+      <AddUserDialog
+        open={addDialogOpen}
+        onOpenChange={setAddDialogOpen}
+        role="developer"
+      />
+    </>
+  )
 }
