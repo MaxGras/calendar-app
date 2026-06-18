@@ -269,7 +269,7 @@ function DeveloperDayColumn({
             key={slot}
             className={
               "relative block w-full border-b border-border/50 " +
-              (isPast ? "bg-gray-100/60" : "") +
+              (isPast ? "bg-slate-200/40" : "") +
               (isHalfHour ? " bg-muted/5" : "")
             }
             style={{ height: SLOT_HEIGHT }}
@@ -307,15 +307,6 @@ function DeveloperDayColumn({
               top: Math.max(startOffset, 2),
               height,
               backgroundColor: baseColor,
-              backgroundImage: !isPast && isRecurring
-                ? `repeating-linear-gradient(
-                    45deg,
-                    transparent,
-                    transparent 15px,
-                    rgba(255, 255, 255, 0.12) 15px,
-                    rgba(255, 255, 255, 0.12) 18px
-                  )`
-                : undefined,
               borderColor: adjustBrightness(baseColor, -0.3),
               outlineColor: baseColor,
               margin: "1px",
