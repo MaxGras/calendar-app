@@ -42,14 +42,13 @@ export async function createAccount(formData: FormData): Promise<ActionResult> {
     return { error: createErr?.message ?? "Failed to create user." }
   }
 
-  // Create the profile row (service role bypasses RLS)
-  const { error: profileErr } = await supabase.from("profiles").insert({
-    id: created.user.id,
-    email,
+  // Update the profile row created by the trigger with full details
+  // The trigger creates a basic profile, we need to set the role and name
+  const { error: profileErr } = await supabase.from("profiles").update({
     full_name: fullName,
     role,
     is_active: true,
-  })
+  }).eq("id", created.user.id)
 
   if (profileErr) {
     // Roll back the auth user so we don't leave an orphan
