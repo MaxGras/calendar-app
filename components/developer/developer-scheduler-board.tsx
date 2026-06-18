@@ -15,6 +15,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { CallDetailsDialog } from "@/components/manager/call-details-dialog"
+import { DeleteRecurringCallModal } from "./delete-recurring-call-modal"
 
 // Generate 30-minute slots
 const SLOTS = Array.from(
@@ -26,19 +27,71 @@ const SLOT_HEIGHT = 32 // px per 30-minute slot
 export function DeveloperSchedulerBoard({
   calls: initialCalls,
   currentProfile,
+  recurringCalls = [],
 }: {
   calls: CallWithDeveloper[]
   currentProfile: Profile
+  recurringCalls?: any[]
 }) {
   const [weekStart, setWeekStart] = useState<Date>(() => startOfWeek(new Date()))
   const [selectedCall, setSelectedCall] = useState<CallWithDeveloper | null>(null)
+  const [deleteModal, setDeleteModal] = useState<{ open: boolean; callId: string; callTitle: string; instanceDate?: string }>({
+    open: false,
+    callId: "",
+    callTitle: "",
+  })
 
   const days = useMemo(
     () => Array.from({ length: 7 }, (_, i) => addDays(weekStart, i)),
     [weekStart],
   )
 
-  if (initialCalls.length === 0) {
+  // Generate call instances from recurring calls for this week
+  const generatedCalls = useMemo(() => {
+    const instances: CallWithDeveloper[] = []
+
+    recurringCalls.forEach((recurring) => {
+      days.forEach((day) => {
+        const dayOfWeek = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][day.getDay()]
+        const shouldInclude =
+          recurring.repeat_type === "daily" ||
+          (recurring.repeat_type === "weekly" && recurring.repeat_days?.includes(dayOfWeek)) ||
+          (recurring.repeat_type === "biweekly" && recurring.repeat_days?.includes(dayOfWeek)) ||
+          (recurring.repeat_type === "custom" && recurring.repeat_days?.includes(dayOfWeek))
+
+        if (shouldInclude) {
+          const start = new Date(day)
+          start.setHours(recurring.hour, recurring.minute, 0, 0)
+
+          const end = new Date(start)
+          end.setMinutes(end.getMinutes() + (recurring.duration_minutes || 60))
+
+          instances.push({
+            id: `${recurring.id}-${day.toISOString()}`,
+            developer_id: recurring.developer_id,
+            title: recurring.title,
+            call_link: recurring.call_link,
+            start_time: start.toISOString(),
+            end_time: end.toISOString(),
+            created_by: currentProfile.id,
+            created_at: recurring.created_at,
+            updated_at: recurring.updated_at,
+            developer: { id: recurring.developer_id, full_name: "", email: "" },
+            creator: recurring.sales_manager || { id: currentProfile.id, full_name: currentProfile.full_name, email: currentProfile.email, color: currentProfile.color },
+            isRecurringInstance: true,
+            recurringCallId: recurring.id,
+            instanceDate: day.toISOString().split("T")[0],
+          } as any)
+        }
+      })
+    })
+
+    return instances
+  }, [recurringCalls, days, currentProfile])
+
+  const allCalls = useMemo(() => [...initialCalls, ...generatedCalls], [initialCalls, generatedCalls])
+
+  if (allCalls.length === 0) {
     return (
       <Card>
         <CardContent className="flex flex-col items-center gap-2 py-16 text-center">
@@ -138,7 +191,7 @@ export function DeveloperSchedulerBoard({
                 <DeveloperDayColumn
                   key={day.toISOString()}
                   day={day}
-                  calls={initialCalls}
+                  calls={allCalls}
                   now={now}
                   onCallClick={(call) => setSelectedCall(call)}
                 />
@@ -157,10 +210,34 @@ export function DeveloperSchedulerBoard({
           call={selectedCall}
           currentProfile={currentProfile}
           onClose={() => setSelectedCall(null)}
-          onCancelled={() => setSelectedCall(null)}
+          onCancelled={() => {
+            setSelectedCall(null)
+          }}
+          onDeleteRecurring={() => {
+            if ((selectedCall as any).isRecurringInstance) {
+              setDeleteModal({
+                open: true,
+                callId: (selectedCall as any).recurringCallId,
+                callTitle: selectedCall.title,
+                instanceDate: (selectedCall as any).instanceDate,
+              })
+            }
+          }}
           readOnly
         />
       ) : null}
+
+      <DeleteRecurringCallModal
+        open={deleteModal.open}
+        onOpenChange={(open) => setDeleteModal({ ...deleteModal, open })}
+        recurringCallId={deleteModal.callId}
+        recurringCallTitle={deleteModal.callTitle}
+        instanceDate={deleteModal.instanceDate}
+        onSuccess={() => {
+          // Remove the deleted instance from the calendar view
+          setWeekStart(new Date(weekStart))
+        }}
+      />
     </div>
   )
 }
@@ -214,18 +291,33 @@ function DeveloperDayColumn({
         const durationMinutes = (end.getTime() - start.getTime()) / 60_000
         const durationSlots = durationMinutes / 30
         const height = Math.max(durationSlots * SLOT_HEIGHT, 32)
+
+        const isRecurring = (call as any).isRecurringInstance
+
+        const baseColor = call.creator?.color || "#8B5CF6"
+
         return (
           <button
             key={call.id}
             type="button"
             onClick={() => onCallClick(call)}
-            className="absolute inset-x-2 overflow-hidden rounded-lg border-2 px-2 py-1.5 text-left transition-all hover:shadow-md focus:outline-none focus:ring-2 cursor-pointer"
+            className={`absolute inset-x-2 overflow-hidden rounded-lg border-2 px-2 py-1.5 text-left transition-all hover:shadow-md focus:outline-none focus:ring-2 cursor-pointer`}
             style={{
-              top: Math.max(startOffset, 0),
+              top: Math.max(startOffset, 2),
               height,
-              backgroundColor: call.creator?.color || "#8B5CF6",
-              borderColor: call.creator?.color || "#8B5CF6",
-              outlineColor: call.creator?.color || "#8B5CF6",
+              backgroundColor: baseColor,
+              backgroundImage: isRecurring
+                ? `repeating-linear-gradient(
+                    45deg,
+                    transparent,
+                    transparent 15px,
+                    rgba(255, 255, 255, 0.12) 15px,
+                    rgba(255, 255, 255, 0.12) 18px
+                  )`
+                : undefined,
+              borderColor: adjustBrightness(baseColor, -0.3),
+              outlineColor: baseColor,
+              margin: "1px",
             }}
           >
             <p className={`truncate text-xs font-bold leading-tight ${getContrastTextColor(call.creator?.color || "#8B5CF6")}`}>
@@ -250,4 +342,12 @@ function formatHour(h: number): string {
   const meridiem = hours < 12 ? "AM" : "PM"
   const displayHours = hours === 0 ? 12 : hours > 12 ? hours - 12 : hours
   return minutes === 0 ? `${displayHours} ${meridiem}` : `${displayHours}:${minutes.toString().padStart(2, "0")} ${meridiem}`
+}
+
+function adjustBrightness(color: string, amount: number): string {
+  const hex = color.replace("#", "")
+  const r = Math.max(0, Math.min(255, parseInt(hex.substring(0, 2), 16) + Math.round(255 * amount)))
+  const g = Math.max(0, Math.min(255, parseInt(hex.substring(2, 4), 16) + Math.round(255 * amount)))
+  const b = Math.max(0, Math.min(255, parseInt(hex.substring(4, 6), 16) + Math.round(255 * amount)))
+  return `#${r.toString(16).padStart(2, "0")}${g.toString(16).padStart(2, "0")}${b.toString(16).padStart(2, "0")}`
 }

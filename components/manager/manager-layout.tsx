@@ -11,9 +11,10 @@ interface ManagerLayoutProps {
   developers: Profile[];
   calls: CallWithDeveloper[];
   profile: Profile;
+  recurringCalls?: any[];
 }
 
-export function ManagerLayout({ developers, calls, profile }: ManagerLayoutProps) {
+export function ManagerLayout({ developers, calls, profile, recurringCalls = [] }: ManagerLayoutProps) {
   const [activeTab, setActiveTab] = useState("calendar");
 
   const managerCalls = calls.filter((c) => c.created_by === profile.id || profile.role === "admin");
@@ -52,7 +53,7 @@ export function ManagerLayout({ developers, calls, profile }: ManagerLayoutProps
       <main className="flex-1 flex flex-col">
         <div className="flex-1">
           {activeTab === "calendar" && (
-            <SchedulerBoard developers={developers} calls={calls} currentProfile={profile} />
+            <SchedulerBoard developers={developers} calls={calls} recurringCalls={recurringCalls} currentProfile={profile} />
           )}
           {activeTab === "calls" && <ManagerCallsTable calls={managerCalls} />}
           {activeTab === "profile" && <ManagerProfile profile={profile} />}

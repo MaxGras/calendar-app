@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useTransition } from "react"
+import React, { useState, useTransition } from "react"
 import { toast } from "sonner"
 import { Loader2 } from "lucide-react"
 import { createRecurringCall } from "@/app/actions/recurring-calls"
@@ -14,12 +14,28 @@ import { Separator } from "@/components/ui/separator"
 const DAYS_OF_WEEK = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
 const DAYS_SHORT = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
 
+export interface RecurringCallFormState {
+  title: string
+  callLink: string
+  salesManagerId: string
+  repeatType: string
+  customDays: string[]
+  repeatInterval: string
+  hour: string
+  minute: string
+  durationMinutes: string
+}
+
 export function CustomCallsForm({
   salesManagers,
   currentProfile,
+  onCallCreated,
+  onFormChange,
 }: {
   salesManagers: Profile[]
   currentProfile: Profile
+  onCallCreated?: (newCall: any) => void
+  onFormChange?: (state: RecurringCallFormState) => void
 }) {
   const [pending, startTransition] = useTransition()
   const [title, setTitle] = useState("")
@@ -30,6 +46,22 @@ export function CustomCallsForm({
   const [repeatInterval, setRepeatInterval] = useState("weekly")
   const [hour, setHour] = useState("9")
   const [minute, setMinute] = useState("0")
+  const [durationMinutes, setDurationMinutes] = useState("60")
+
+  // Notify parent of form changes for preview
+  React.useEffect(() => {
+    onFormChange?.({
+      title,
+      callLink,
+      salesManagerId,
+      repeatType,
+      customDays,
+      repeatInterval,
+      hour,
+      minute,
+      durationMinutes,
+    })
+  }, [title, callLink, salesManagerId, repeatType, customDays, repeatInterval, hour, minute, durationMinutes, onFormChange])
 
   const handleDayToggle = (day: string) => {
     setCustomDays((prev) =>
@@ -45,8 +77,8 @@ export function CustomCallsForm({
       return
     }
 
-    if (repeatType === "custom" && customDays.length === 0) {
-      toast.error("Please select at least one day for custom repeat")
+    if ((repeatType === "custom" || repeatType === "weekly" || repeatType === "biweekly") && customDays.length === 0) {
+      toast.error("Please select at least one day")
       return
     }
 
@@ -56,10 +88,11 @@ export function CustomCallsForm({
         callLink: callLink.trim(),
         salesManagerId: salesManagerId === currentProfile.id ? null : salesManagerId,
         repeatType,
-        repeatDays: repeatType === "custom" ? customDays : [],
-        repeatInterval: repeatType === "custom" ? repeatInterval : "weekly",
+        repeatDays: (repeatType === "custom" || repeatType === "weekly" || repeatType === "biweekly") ? customDays : (repeatType === "daily" ? DAYS_SHORT : []),
+        repeatInterval: (repeatType === "custom" || repeatType === "biweekly") ? repeatInterval : "weekly",
         hour: parseInt(hour),
         minute: parseInt(minute),
+        durationMinutes: parseInt(durationMinutes),
       })
 
       if (res.error) {
@@ -74,6 +107,10 @@ export function CustomCallsForm({
         setRepeatInterval("weekly")
         setHour("9")
         setMinute("0")
+        setDurationMinutes("60")
+        if (res.data) {
+          onCallCreated?.(res.data)
+        }
       }
     })
   }
@@ -128,7 +165,7 @@ export function CustomCallsForm({
 
       <div className="flex flex-col gap-2">
         <Label htmlFor="repeat-type">Repeat</Label>
-        <Select value={repeatType} onValueChange={setRepeatType} disabled={pending}>
+        <Select value={repeatType} onValueChange={(value) => { setRepeatType(value); setCustomDays([]); }} disabled={pending}>
           <SelectTrigger id="repeat-type">
             <SelectValue />
           </SelectTrigger>
@@ -141,7 +178,7 @@ export function CustomCallsForm({
         </Select>
       </div>
 
-      {repeatType === "custom" && (
+      {(repeatType === "custom" || repeatType === "weekly" || repeatType === "biweekly") && (
         <>
           <div className="flex flex-col gap-3 p-3 bg-muted/30 rounded-lg">
             <Label>Select Days</Label>
@@ -164,24 +201,26 @@ export function CustomCallsForm({
             </div>
           </div>
 
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="repeat-interval">Repeat Interval</Label>
-            <Select value={repeatInterval} onValueChange={setRepeatInterval} disabled={pending}>
-              <SelectTrigger id="repeat-interval">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="weekly">Every Week</SelectItem>
-                <SelectItem value="biweekly">Every Two Weeks</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+          {(repeatType === "custom" || repeatType === "biweekly") && (
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="repeat-interval">Repeat Interval</Label>
+              <Select value={repeatInterval} onValueChange={setRepeatInterval} disabled={pending}>
+                <SelectTrigger id="repeat-interval">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="weekly">Every Week</SelectItem>
+                  <SelectItem value="biweekly">Every Two Weeks</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          )}
         </>
       )}
 
       <Separator />
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-3 gap-4">
         <div className="flex flex-col gap-2">
           <Label htmlFor="hour">Hour</Label>
           <Select value={hour} onValueChange={setHour} disabled={pending}>
@@ -208,6 +247,22 @@ export function CustomCallsForm({
               {[0, 15, 30, 45].map((m) => (
                 <SelectItem key={m} value={String(m)}>
                   {String(m).padStart(2, "0")}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="flex flex-col gap-2">
+          <Label htmlFor="duration">Duration (min)</Label>
+          <Select value={durationMinutes} onValueChange={setDurationMinutes} disabled={pending}>
+            <SelectTrigger id="duration">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {[15, 30, 45, 60, 90, 120].map((m) => (
+                <SelectItem key={m} value={String(m)}>
+                  {m} min
                 </SelectItem>
               ))}
             </SelectContent>

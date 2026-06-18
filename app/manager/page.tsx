@@ -29,13 +29,26 @@ export default async function ManagerPage() {
 
   const calls = (callsData as CallWithDeveloper[]) ?? []
 
+  // Fetch recurring calls for all developers
+  let recurringCalls: any[] = []
+  if (developers.length > 0) {
+    const developerIds = developers.map(d => d.id)
+    const { data: recurringCallsData } = await supabase
+      .from("recurring_calls")
+      .select("*")
+      .in("developer_id", developerIds)
+      .eq("is_active", true)
+
+    recurringCalls = recurringCallsData ?? []
+  }
+
   return (
     <DashboardShell
       profile={profile}
       fullWidth
       wideLayout
     >
-      <ManagerLayout developers={developers} calls={calls} profile={profile} />
+      <ManagerLayout developers={developers} calls={calls} recurringCalls={recurringCalls} profile={profile} />
     </DashboardShell>
   )
 }

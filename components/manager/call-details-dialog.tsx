@@ -23,12 +23,14 @@ export function CallDetailsDialog({
   onClose,
   onCancelled,
   readOnly = false,
+  onDeleteRecurring,
 }: {
   call: CallWithDeveloper;
   currentProfile: Profile;
   onClose: () => void;
   onCancelled: (callId: string) => void;
   readOnly?: boolean;
+  onDeleteRecurring?: () => void;
 }) {
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [pending, startTransition] = useTransition();
@@ -37,6 +39,7 @@ export function CallDetailsDialog({
   const end = new Date(call.end_time);
   const canDelete = call.created_by === currentProfile.id;
   const showLink = currentProfile.role !== "sales_manager";
+  const isRecurringInstance = (call as any).isRecurringInstance;
 
   function handleCancel() {
     // Optimistically remove from UI
@@ -134,18 +137,25 @@ export function CallDetailsDialog({
               <Button type="button" variant="outline" onClick={onClose}>
                 Close
               </Button>
-              {!readOnly && (
+              {(!readOnly || isRecurringInstance) && (
                 <Button
                   type="button"
                   variant="ghost"
                   size="icon"
                   className="text-muted-foreground hover:text-destructive disabled:cursor-not-allowed disabled:opacity-50"
                   disabled={!canDelete}
-                  onClick={() => setDeleteOpen(true)}
-                  title={!canDelete ? "Only the creator can delete this call" : "Cancel call"}
+                  onClick={() => {
+                    if (isRecurringInstance && onDeleteRecurring) {
+                      onDeleteRecurring();
+                      onClose();
+                    } else {
+                      setDeleteOpen(true);
+                    }
+                  }}
+                  title={!canDelete ? "Only the creator can delete this call" : isRecurringInstance ? "Delete recurring call" : "Cancel call"}
                 >
                   <Trash2 className="h-4 w-4" />
-                  <span className="sr-only">Cancel call</span>
+                  <span className="sr-only">{isRecurringInstance ? "Delete recurring call" : "Cancel call"}</span>
                 </Button>
               )}
             </>

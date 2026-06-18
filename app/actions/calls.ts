@@ -64,3 +64,34 @@ export async function cancelCall(callId: string): Promise<ActionResult> {
   revalidatePath("/manager")
   return { success: "Call cancelled." }
 }
+
+export async function getDeveloperSchedule(developerId: string): Promise<{
+  calls?: any[]
+  recurringCalls?: any[]
+  error?: string
+}> {
+  try {
+    const supabase = await createClient()
+
+    const { data: calls } = await supabase
+      .from("calls")
+      .select("*, creator:profiles!calls_created_by_fkey(id, full_name, email, color)")
+      .eq("developer_id", developerId)
+      .order("start_time", { ascending: true })
+
+    const { data: recurringCalls } = await supabase
+      .from("recurring_calls")
+      .select("*")
+      .eq("developer_id", developerId)
+      .eq("is_active", true)
+      .order("created_at", { ascending: false })
+
+    return {
+      calls: calls || [],
+      recurringCalls: recurringCalls || [],
+    }
+  } catch (err) {
+    console.error("Error fetching developer schedule:", err)
+    return { error: "Failed to fetch schedule" }
+  }
+}

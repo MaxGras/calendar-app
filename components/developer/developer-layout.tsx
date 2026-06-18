@@ -4,7 +4,7 @@ import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { DeveloperSchedulerBoard } from "./developer-scheduler-board";
 import { DeveloperCallsTable } from "./developer-calls-table";
-import { CustomCalls } from "./custom-calls";
+import { CustomCallsWithPreview } from "./custom-calls-with-preview";
 import { ManagerProfile } from "@/components/manager/manager-profile";
 import type { CallWithDeveloper, Profile } from "@/lib/types";
 
@@ -53,11 +53,11 @@ export function DeveloperLayout({ calls, profile, salesManagers, recurringCalls 
       <main className="flex-1 flex flex-col">
         <div className="flex-1">
           {activeTab === "calendar" && (
-            <DeveloperSchedulerBoard calls={calls} currentProfile={profile} />
+            <DeveloperSchedulerBoard calls={calls} currentProfile={profile} recurringCalls={recurringCalls} />
           )}
           {activeTab === "calls" && <DeveloperCallsTable calls={calls} currentProfile={profile} />}
           {activeTab === "custom-calls" && (
-            <CustomCalls
+            <CustomCallsWithPreview
               salesManagers={salesManagers}
               recurringCalls={recurringCalls}
               currentProfile={profile}

@@ -1,28 +1,28 @@
 "use client"
 
-import { useState, useTransition } from "react"
-import { toast } from "sonner"
-import { Loader2, Trash2 } from "lucide-react"
-import { deleteRecurringCall } from "@/app/actions/recurring-calls"
+import { useState } from "react"
+import { Trash2 } from "lucide-react"
+import { DeleteRecurringCallModal } from "./delete-recurring-call-modal"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 
 const DAYS_SHORT = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
 
-export function CustomCallsList({ calls }: { calls: any[] }) {
-  const [pending, startTransition] = useTransition()
+export function CustomCallsList({ calls, onCallDeleted }: { calls: any[]; onCallDeleted?: () => void }) {
   const [localCalls, setLocalCalls] = useState(calls)
+  const [deleteModal, setDeleteModal] = useState<{ open: boolean; callId: string; callTitle: string }>({
+    open: false,
+    callId: "",
+    callTitle: "",
+  })
 
-  const handleDelete = (id: string) => {
-    startTransition(async () => {
-      const res = await deleteRecurringCall(id)
-      if (res.error) {
-        toast.error(res.error)
-      } else {
-        toast.success("Recurring call deleted")
-        setLocalCalls((prev) => prev.filter((c) => c.id !== id))
-      }
-    })
+  const handleDeleteClick = (id: string, title: string) => {
+    setDeleteModal({ open: true, callId: id, callTitle: title })
+  }
+
+  const handleDeleteSuccess = () => {
+    setLocalCalls((prev) => prev.filter((c) => c.id !== deleteModal.callId))
+    onCallDeleted?.()
   }
 
   if (localCalls.length === 0) {
@@ -37,9 +37,12 @@ export function CustomCallsList({ calls }: { calls: any[] }) {
     if (call.repeat_type === "daily") {
       return "Every day"
     } else if (call.repeat_type === "weekly") {
-      return "Every week"
+      const days = call.repeat_days?.join(", ") || "No days"
+      return `${days} (weekly)`
     } else if (call.repeat_type === "biweekly") {
-      return "Every two weeks"
+      const days = call.repeat_days?.join(", ") || "No days"
+      const interval = call.repeat_interval === "biweekly" ? "every 2 weeks" : "every week"
+      return `${days} ${interval}`
     } else if (call.repeat_type === "custom") {
       const days = call.repeat_days?.join(", ") || ""
       const interval = call.repeat_interval === "biweekly" ? "every 2 weeks" : "every week"
@@ -83,15 +86,22 @@ export function CustomCallsList({ calls }: { calls: any[] }) {
                 variant="ghost"
                 size="icon"
                 className="h-8 w-8 text-muted-foreground hover:text-destructive"
-                onClick={() => handleDelete(call.id)}
-                disabled={pending}
+                onClick={() => handleDeleteClick(call.id, call.title)}
               >
-                {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                <Trash2 className="h-4 w-4" />
               </Button>
             </div>
           </CardContent>
         </Card>
       ))}
+
+      <DeleteRecurringCallModal
+        open={deleteModal.open}
+        onOpenChange={(open) => setDeleteModal({ ...deleteModal, open })}
+        recurringCallId={deleteModal.callId}
+        recurringCallTitle={deleteModal.callTitle}
+        onSuccess={handleDeleteSuccess}
+      />
     </div>
   )
 }
