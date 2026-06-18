@@ -82,6 +82,11 @@ export function SchedulerBoard({
           const end = new Date(start)
           end.setMinutes(end.getMinutes() + (recurring.duration_minutes || 60))
 
+          // Use sales manager's color if assigned, otherwise use developer's color
+          const creatorColor = recurring.sales_manager?.color || recurring.developer?.color || "#8B5CF6"
+          const creatorName = recurring.sales_manager?.full_name || recurring.sales_manager?.email || currentProfile.full_name || currentProfile.email
+          const creatorId = recurring.sales_manager?.id || currentProfile.id
+
           generatedInstances.push({
             id: `${recurring.id}-${day.toISOString()}`,
             developer_id: recurring.developer_id,
@@ -89,11 +94,11 @@ export function SchedulerBoard({
             call_link: recurring.call_link,
             start_time: start.toISOString(),
             end_time: end.toISOString(),
-            created_by: currentProfile.id,
+            created_by: creatorId,
             created_at: recurring.created_at,
             updated_at: recurring.updated_at,
             developer: { id: recurring.developer_id, full_name: "", email: "" },
-            creator: { id: currentProfile.id, full_name: currentProfile.full_name, email: currentProfile.email, color: currentProfile.color },
+            creator: { id: creatorId, full_name: creatorName, email: recurring.sales_manager?.email || currentProfile.email, color: creatorColor },
             isRecurringInstance: true,
             recurringCallId: recurring.id,
             instanceDate: day.toISOString().split("T")[0],
@@ -286,6 +291,11 @@ export function SchedulerBoard({
           onClose={() => setSelectedCall(null)}
           onCancelled={(callId) => {
             removeCallOptimistic(callId)
+          }}
+          onDeleteRecurring={() => {
+            if ((selectedCall as any).isRecurringInstance) {
+              removeCallOptimistic(selectedCall.id)
+            }
           }}
         />
       ) : null}

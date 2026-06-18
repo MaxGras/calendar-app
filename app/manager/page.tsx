@@ -29,13 +29,13 @@ export default async function ManagerPage() {
 
   const calls = (callsData as CallWithDeveloper[]) ?? []
 
-  // Fetch recurring calls for all developers
+  // Fetch recurring calls for all developers with sales manager and developer info
   let recurringCalls: any[] = []
   if (developers.length > 0) {
     const developerIds = developers.map(d => d.id)
     const { data: recurringCallsData } = await supabase
       .from("recurring_calls")
-      .select("*")
+      .select("*, sales_manager:profiles!recurring_calls_sales_manager_id_fkey(id, full_name, email, color), developer:profiles!recurring_calls_developer_id_fkey(id, full_name, email, color)")
       .in("developer_id", developerIds)
       .eq("is_active", true)
 

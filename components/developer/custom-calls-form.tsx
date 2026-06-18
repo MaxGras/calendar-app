@@ -86,7 +86,7 @@ export function CustomCallsForm({
       const res = await createRecurringCall({
         title: title.trim(),
         callLink: callLink.trim(),
-        salesManagerId: salesManagerId === currentProfile.id ? null : salesManagerId,
+        salesManagerId: salesManagerId && salesManagerId !== currentProfile.id ? salesManagerId : null,
         repeatType,
         repeatDays: (repeatType === "custom" || repeatType === "weekly" || repeatType === "biweekly") ? customDays : (repeatType === "daily" ? DAYS_SHORT : []),
         repeatInterval: (repeatType === "custom" || repeatType === "biweekly") ? repeatInterval : "weekly",
@@ -101,7 +101,7 @@ export function CustomCallsForm({
         toast.success("Recurring call created!")
         setTitle("")
         setCallLink("")
-        setSalesManagerId(currentProfile.id)
+        setSalesManagerId("")
         setRepeatType("weekly")
         setCustomDays([])
         setRepeatInterval("weekly")
@@ -143,16 +143,19 @@ export function CustomCallsForm({
       <Separator />
 
       <div className="flex flex-col gap-2">
-        <Label htmlFor="sales-manager">Sales Manager</Label>
+        <Label htmlFor="sales-manager">Sales Manager (optional)</Label>
         <Select value={salesManagerId} onValueChange={setSalesManagerId} disabled={pending}>
           <SelectTrigger id="sales-manager">
-            <SelectValue />
+            <SelectValue placeholder="Select a sales manager or none" />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value={currentProfile.id}>
               {currentProfile.full_name || currentProfile.email} (Me)
             </SelectItem>
-            {salesManagers.map((manager) => (
+            <SelectItem value="">
+              None (Not assigned)
+            </SelectItem>
+            {salesManagers.filter(m => m.id !== currentProfile.id).map((manager) => (
               <SelectItem key={manager.id} value={manager.id}>
                 {manager.full_name || manager.email}
               </SelectItem>

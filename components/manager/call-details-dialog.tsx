@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { toast } from "sonner";
 import { Loader2, Trash2 } from "lucide-react";
 import { cancelCall } from "@/app/actions/calls";
+import { deleteRecurringCall } from "@/app/actions/recurring-calls";
 import type { CallWithDeveloper, Profile } from "@/lib/types";
 import { formatDateTime } from "@/lib/time";
 import { Button } from "@/components/ui/button";
@@ -40,23 +41,34 @@ export function CallDetailsDialog({
   const canDelete = call.created_by === currentProfile.id;
   const showLink = currentProfile.role !== "sales_manager";
   const isRecurringInstance = (call as any).isRecurringInstance;
+  const recurringCallId = (call as any).recurringCallId;
 
   function handleCancel() {
     // Optimistically remove from UI
     setDeleteOpen(false);
     onClose();
     onCancelled(call.id);
-    toast.success("Call cancelled.");
 
-    // Send request
-    startTransition(async () => {
-      const res = await cancelCall(call.id);
-      if (res.error) {
-        // Revert optimistic update on error
-        toast.error(res.error);
-        // TODO: Re-add the call to state
-      }
-    });
+    if (isRecurringInstance) {
+      toast.success("Recurring call deleted.");
+      // Send request
+      startTransition(async () => {
+        const res = await deleteRecurringCall(recurringCallId);
+        if (res.error) {
+          toast.error(res.error);
+        }
+      });
+    } else {
+      toast.success("Call cancelled.");
+      // Send request
+      startTransition(async () => {
+        const res = await cancelCall(call.id);
+        if (res.error) {
+          toast.error(res.error);
+          // TODO: Re-add the call to state
+        }
+      });
+    }
   }
 
   return (

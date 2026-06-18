@@ -1,5 +1,6 @@
 "use server"
 
+import { revalidatePath } from "next/cache"
 import { createClient } from "@/lib/supabase/server"
 import { getCurrentProfile } from "@/lib/auth"
 
@@ -187,24 +188,62 @@ export async function getRecurringCalls(): Promise<any[]> {
 export async function deleteRecurringCall(id: string): Promise<{ error?: string; success?: string }> {
   try {
     const profile = await getCurrentProfile()
-    if (!profile || profile.role !== "developer") {
+    if (!profile) {
       return { error: "Unauthorized" }
     }
 
     const supabase = await createClient()
 
-    const { error } = await supabase
-      .from("recurring_calls")
-      .delete()
-      .eq("id", id)
-      .eq("developer_id", profile.id)
+    // If developer, can only delete own calls
+    if (profile.role === "developer") {
+      const { error } = await supabase
+        .from("recurring_calls")
+        .delete()
+        .eq("id", id)
+        .eq("developer_id", profile.id)
 
-    if (error) {
-      console.error("Error deleting recurring call:", error)
-      return { error: "Failed to delete recurring call" }
+      if (error) {
+        console.error("Error deleting recurring call:", error)
+        return { error: "Failed to delete recurring call" }
+      }
+
+      revalidatePath("/manager")
+      return { success: "Recurring call deleted" }
     }
 
-    return { success: "Recurring call deleted" }
+    // If manager or admin, need to check if they are assigned to this call
+    if (profile.role === "sales_manager" || profile.role === "admin") {
+      // Fetch the recurring call to check if manager is assigned
+      const { data: recurringCall } = await supabase
+        .from("recurring_calls")
+        .select("id, sales_manager_id")
+        .eq("id", id)
+        .single()
+
+      if (!recurringCall) {
+        return { error: "Recurring call not found" }
+      }
+
+      // For managers, check if they are assigned; for admins, allow deletion
+      if (profile.role === "sales_manager" && recurringCall.sales_manager_id !== profile.id) {
+        return { error: "You can only delete recurring calls assigned to you" }
+      }
+
+      const { error } = await supabase
+        .from("recurring_calls")
+        .delete()
+        .eq("id", id)
+
+      if (error) {
+        console.error("Error deleting recurring call:", error)
+        return { error: "Failed to delete recurring call" }
+      }
+
+      revalidatePath("/manager")
+      return { success: "Recurring call deleted" }
+    }
+
+    return { error: "Unauthorized" }
   } catch (err) {
     console.error("Error:", err)
     return { error: "An error occurred" }
