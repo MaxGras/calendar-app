@@ -89,6 +89,87 @@ export function CallDetailsDialog({
     }
   }
 
+  // If showing delete dialogs for recurring call, don't show the main dialog
+  if (isRecurringInstance && deleteMode === null && canDelete) {
+    return (
+      <>
+        {/* Delete mode selection for recurring calls */}
+        <Dialog open={true} onOpenChange={onClose}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Delete Recurring Call</DialogTitle>
+              <DialogDescription>
+                How would you like to delete this recurring call?
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter className="flex gap-3">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={onClose}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setDeleteMode("one")}
+              >
+                Delete This Instance Only
+              </Button>
+              <Button
+                type="button"
+                variant="destructive"
+                onClick={() => setDeleteMode("all")}
+              >
+                Delete Entire Series
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </>
+    )
+  }
+
+  // If confirming delete, show confirmation dialog
+  if (isRecurringInstance && deleteMode !== null && deleteMode !== undefined) {
+    return (
+      <>
+        {/* Confirmation dialog for selected delete mode */}
+        <Dialog open={true} onOpenChange={onClose}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Confirm Delete</DialogTitle>
+              <DialogDescription>
+                {deleteMode === "one"
+                  ? "Are you sure you want to delete this instance of the recurring call?"
+                  : "Are you sure you want to delete the entire recurring call series?"}
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setDeleteMode(null)}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                variant="destructive"
+                disabled={pending}
+                onClick={handleCancel}
+              >
+                {pending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                Delete
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </>
+    )
+  }
+
   return (
     <Dialog open onOpenChange={onClose}>
       <DialogContent>
@@ -176,6 +257,7 @@ export function CallDetailsDialog({
                   onClick={() => {
                     if (isRecurringInstance) {
                       setDeleteMode(null);
+                      onClose();
                     } else {
                       setDeleteOpen(true);
                     }
@@ -189,73 +271,6 @@ export function CallDetailsDialog({
             </>
           )}
         </DialogFooter>
-
-        {/* Delete mode selection for recurring calls */}
-        <Dialog open={isRecurringInstance && deleteMode === null && canDelete} onOpenChange={() => setDeleteMode(null)}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Delete Recurring Call</DialogTitle>
-              <DialogDescription>
-                How would you like to delete this recurring call?
-              </DialogDescription>
-            </DialogHeader>
-            <DialogFooter className="flex gap-3">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setDeleteMode(null)}
-              >
-                Cancel
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setDeleteMode("one")}
-              >
-                Delete This Instance Only
-              </Button>
-              <Button
-                type="button"
-                variant="destructive"
-                onClick={() => setDeleteMode("all")}
-              >
-                Delete Entire Series
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-
-        {/* Confirmation dialog for selected delete mode */}
-        <Dialog open={deleteMode !== null && deleteMode !== undefined} onOpenChange={() => setDeleteMode(null)}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Confirm Delete</DialogTitle>
-              <DialogDescription>
-                {deleteMode === "one"
-                  ? "Are you sure you want to delete this instance of the recurring call?"
-                  : "Are you sure you want to delete the entire recurring call series?"}
-              </DialogDescription>
-            </DialogHeader>
-            <DialogFooter>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setDeleteMode(null)}
-              >
-                Cancel
-              </Button>
-              <Button
-                type="button"
-                variant="destructive"
-                disabled={pending}
-                onClick={handleCancel}
-              >
-                {pending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-                Delete
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
       </DialogContent>
     </Dialog>
   );

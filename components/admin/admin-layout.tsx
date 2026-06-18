@@ -4,6 +4,7 @@ import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { DevelopersTable } from "./developers-table";
 import { SalesTable } from "./sales-table";
+import { TimezoneSettings } from "./timezone-settings";
 import type { Profile } from "@/lib/types";
 
 interface AdminLayoutProps {
@@ -11,9 +12,10 @@ interface AdminLayoutProps {
   currentUserId: string;
   title: string;
   description?: string;
+  defaultTimezone: string;
 }
 
-export function AdminLayout({ accounts, currentUserId, title, description }: AdminLayoutProps) {
+export function AdminLayout({ accounts, currentUserId, title, description, defaultTimezone }: AdminLayoutProps) {
   const [activeTab, setActiveTab] = useState("developers");
 
   const developers = accounts.filter((a) => a.role === "developer");
@@ -22,6 +24,7 @@ export function AdminLayout({ accounts, currentUserId, title, description }: Adm
   const menuItems = [
     { id: "developers", label: "Developers", icon: "👨‍💻" },
     { id: "sales", label: "Sales Managers", icon: "📈" },
+    { id: "settings", label: "Settings", icon: "⚙️" },
     { id: "availability", label: "Availability", icon: "📅" },
   ];
 
@@ -59,6 +62,11 @@ export function AdminLayout({ accounts, currentUserId, title, description }: Adm
         <div className="flex-1">
           {activeTab === "developers" && <DevelopersTable developers={developers} />}
           {activeTab === "sales" && <SalesTable managers={salesManagers} />}
+          {activeTab === "settings" && (
+            <div className="max-w-2xl">
+              <TimezoneSettings defaultTimezone={defaultTimezone} />
+            </div>
+          )}
           {activeTab === "availability" && (
             <div className="rounded-lg border border-dashed border-border bg-card p-12 text-center">
               <p className="text-muted-foreground">Availability tracking coming soon</p>

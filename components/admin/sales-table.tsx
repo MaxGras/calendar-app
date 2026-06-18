@@ -1,12 +1,14 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useTransition } from "react"
 import { ColumnDef } from "@tanstack/react-table"
-import { Plus } from "lucide-react"
+import { Plus, Trash2 } from "lucide-react"
+import { toast } from "sonner"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { DataTable } from "@/components/ui/data-table"
 import { AddUserDialog } from "./add-user-dialog"
+import { deleteAccount } from "@/app/actions/admin"
 import type { Profile } from "@/lib/types"
 
 interface SalesTableProps {
@@ -15,6 +17,24 @@ interface SalesTableProps {
 
 export function SalesTable({ managers }: SalesTableProps) {
   const [addDialogOpen, setAddDialogOpen] = useState(false)
+  const [deleteConfirm, setDeleteConfirm] = useState<{ open: boolean; id: string; name: string }>({
+    open: false,
+    id: "",
+    name: "",
+  })
+  const [pending, startTransition] = useTransition()
+
+  const handleDelete = (id: string) => {
+    startTransition(async () => {
+      const res = await deleteAccount(id)
+      if (res.error) {
+        toast.error(res.error)
+      } else {
+        toast.success(res.success || "Sales manager deleted")
+        setDeleteConfirm({ open: false, id: "", name: "" })
+      }
+    })
+  }
 
   const formatDate = (date: string) => {
     return new Date(date).toLocaleDateString("en-US", {
@@ -55,6 +75,25 @@ export function SalesTable({ managers }: SalesTableProps) {
         </div>
       ),
     },
+    {
+      id: "actions",
+      cell: ({ row }) => (
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() =>
+            setDeleteConfirm({
+              open: true,
+              id: row.original.id,
+              name: row.original.full_name || row.original.email,
+            })
+          }
+          className="text-destructive hover:text-destructive"
+        >
+          <Trash2 className="h-4 w-4" />
+        </Button>
+      ),
+    },
   ]
 
   return (
@@ -84,6 +123,34 @@ export function SalesTable({ managers }: SalesTableProps) {
         onOpenChange={setAddDialogOpen}
         role="sales_manager"
       />
+
+      {/* Delete confirmation dialog */}
+      {deleteConfirm.open && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-card rounded-lg border border-border p-6 max-w-sm">
+            <h2 className="text-lg font-semibold mb-2">Delete Sales Manager</h2>
+            <p className="text-sm text-muted-foreground mb-6">
+              Are you sure you want to delete <strong>{deleteConfirm.name}</strong>? This action cannot be undone.
+            </p>
+            <div className="flex gap-3 justify-end">
+              <Button
+                variant="outline"
+                onClick={() => setDeleteConfirm({ open: false, id: "", name: "" })}
+                disabled={pending}
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={() => handleDelete(deleteConfirm.id)}
+                disabled={pending}
+              >
+                {pending ? "Deleting..." : "Delete"}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   )
 }
