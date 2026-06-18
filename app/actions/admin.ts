@@ -25,7 +25,7 @@ export async function createAccount(formData: FormData): Promise<ActionResult> {
   const role = String(formData.get("role") || "") as Role
 
   if (!email || !password || !fullName) return { error: "All fields are required." }
-  if (password.length < 8) return { error: "Password must be at least 8 characters." }
+  if (password.length < 4) return { error: "Password must be at least 4 characters." }
   if (!["sales_manager", "developer", "admin"].includes(role)) return { error: "Invalid role." }
 
   const supabase = await createAdminClient()
