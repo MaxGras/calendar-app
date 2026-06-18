@@ -40,7 +40,7 @@ export function CustomCallsForm({
   const [pending, startTransition] = useTransition()
   const [title, setTitle] = useState("")
   const [callLink, setCallLink] = useState("")
-  const [salesManagerId, setSalesManagerId] = useState(currentProfile.id)
+  const [salesManagerId, setSalesManagerId] = useState("")
   const [repeatType, setRepeatType] = useState("weekly")
   const [customDays, setCustomDays] = useState<string[]>([])
   const [repeatInterval, setRepeatInterval] = useState("weekly")

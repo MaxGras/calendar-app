@@ -143,7 +143,7 @@ export async function createRecurringCall({
       minute,
       duration_minutes: durationMinutes,
       is_active: true,
-    }).select()
+    }).select("*, sales_manager:profiles!recurring_calls_sales_manager_id_fkey(id, full_name, email)")
 
     if (error) {
       console.error("Error creating recurring call:", error)
