@@ -316,6 +316,15 @@ function DeveloperDayColumn({
               top: Math.max(startOffset, 2),
               height,
               backgroundColor: baseColor,
+              backgroundImage: isRecurring
+                ? `repeating-linear-gradient(
+                    45deg,
+                    transparent,
+                    transparent 15px,
+                    rgba(255, 255, 255, 0.12) 15px,
+                    rgba(255, 255, 255, 0.12) 18px
+                  )`
+                : undefined,
               borderColor: adjustBrightness(baseColor, -0.3),
               outlineColor: baseColor,
               margin: "1px",
