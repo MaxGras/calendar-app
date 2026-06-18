@@ -17,16 +17,6 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 
 export function CallDetailsDialog({
   call,
@@ -196,16 +186,22 @@ export function CallDetailsDialog({
         </DialogFooter>
 
         {/* Delete mode selection for recurring calls */}
-        <AlertDialog open={isRecurringInstance && deleteMode === null && canDelete} onOpenChange={() => setDeleteMode(null)}>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Delete Recurring Call</AlertDialogTitle>
-              <AlertDialogDescription>
+        <Dialog open={isRecurringInstance && deleteMode === null && canDelete} onOpenChange={() => setDeleteMode(null)}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Delete Recurring Call</DialogTitle>
+              <DialogDescription>
                 How would you like to delete this recurring call?
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <DialogFooter>
-              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter className="flex gap-3">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setDeleteMode(null)}
+              >
+                Cancel
+              </Button>
               <Button
                 type="button"
                 variant="outline"
@@ -221,36 +217,40 @@ export function CallDetailsDialog({
                 Delete Entire Series
               </Button>
             </DialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
+          </DialogContent>
+        </Dialog>
 
         {/* Confirmation dialog for selected delete mode */}
-        <AlertDialog open={deleteMode !== null} onOpenChange={() => setDeleteMode(null)}>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Confirm Delete</AlertDialogTitle>
-              <AlertDialogDescription>
+        <Dialog open={deleteMode !== null && deleteMode !== undefined} onOpenChange={() => setDeleteMode(null)}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Confirm Delete</DialogTitle>
+              <DialogDescription>
                 {deleteMode === "one"
                   ? "Are you sure you want to delete this instance of the recurring call?"
                   : "Are you sure you want to delete the entire recurring call series?"}
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Cancel</AlertDialogCancel>
-              <AlertDialogAction asChild>
-                <Button
-                  type="button"
-                  variant="destructive"
-                  disabled={pending}
-                  onClick={handleCancel}
-                >
-                  {pending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-                  Delete
-                </Button>
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setDeleteMode(null)}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                variant="destructive"
+                disabled={pending}
+                onClick={handleCancel}
+              >
+                {pending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                Delete
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </DialogContent>
     </Dialog>
   );
